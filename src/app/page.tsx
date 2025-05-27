@@ -1,11 +1,14 @@
 "use client";
-import ChatInterface  from "@/components/chat/ChatInterface";
+import ChatInterface from "@/components/chat/ChatInterface";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const Page = () => {
   return (
-    <div className="h-screen bg-gray-50">
-      <ChatInterface />
-    </div>
+    <ErrorBoundary>
+      <div className="h-screen bg-gray-50">
+        <ChatInterface />
+      </div>
+    </ErrorBoundary>
   );
 };
 

@@ -1,8 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
 import { articleQueryTool } from '../tools';
-import { memory } from '../agents/memory';
-
+import { memory } from './memory';
 
 
 export const articleAgent = new Agent({

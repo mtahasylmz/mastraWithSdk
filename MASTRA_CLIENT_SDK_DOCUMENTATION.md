@@ -471,4 +471,120 @@ if (messagesResponse) {
 }
 ```
 
-This documentation covers the essential aspects of the Mastra Client SDK based on our implementation experience. The SDK provides a robust interface for memory management and conversation handling with rich message formatting capabilities. 
+This documentation covers the essential aspects of the Mastra Client SDK based on our implementation experience. The SDK provides a robust interface for memory management and conversation handling with rich message formatting capabilities.
+
+## Message Streaming
+
+### Stream Messages to Agent
+
+The Mastra Client SDK supports real-time streaming of agent responses, allowing for dynamic chat experiences.
+
+#### Basic Streaming
+
+```typescript
+import { processDataStream } from '@ai-sdk/ui-utils';
+
+const streamResponse = await mastra_sdk.stream({
+  messages: [userMessage],
+  resourceId: "user-123",
+  threadId: "thread_1705123456789"
+});
+
+// Process the stream for real-time updates
+await streamResponse.processDataStream({
+  onTextPart: (text) => {
+    console.log('Text chunk:', text);
+    // Update UI with text chunk
+  },
+  onReasoningPart: (reasoning) => {
+    console.log('AI reasoning:', reasoning);
+    // Show AI thinking process
+  },
+  onToolCallPart: (toolCall) => {
+    console.log('Tool invocation:', toolCall);
+    // Show tool usage
+  },
+  onFinishMessagePart: (message) => {
+    console.log('Message complete:', message);
+    // Finalize message in UI
+  },
+  onErrorPart: (error) => {
+    console.error('Stream error:', error);
+    // Handle streaming errors
+  }
+});
+```
+
+#### Simple Chat Implementation
+
+```typescript
+const sendMessage = async (userMessage: string, threadId: string) => {
+  try {
+    // Start streaming
+    const response = await mastra_sdk.stream({
+      messages: [userMessage],
+      resourceId: MASTRA_CONFIG.resourceId,
+      threadId: threadId
+    });
+
+    // Process stream chunks
+    await response.processDataStream({
+      onTextPart: (text) => {
+        // Append text to current AI message
+        updateCurrentMessage(text);
+      },
+      onFinishMessagePart: () => {
+        // Message complete, refresh thread messages
+        refreshMessages(threadId);
+      }
+    });
+  } catch (error) {
+    console.error('Streaming failed:', error);
+  }
+};
+```
+
+#### Stream Parameters
+
+```typescript
+interface SimpleStreamParams {
+  messages: string[];              // Array of message strings
+  resourceId: string;             // User/resource identifier  
+  threadId: string;               // Thread identifier
+}
+
+// Example usage
+const params = {
+  messages: ["What's the weather like today?"],
+  resourceId: "user-123", 
+  threadId: "thread_1705123456789"
+};
+```
+
+#### Available Stream Events
+
+- `onTextPart`: Receive text chunks as they're generated
+- `onReasoningPart`: See AI reasoning/thinking process  
+- `onToolCallPart`: Handle tool invocations
+- `onToolResultPart`: Process tool results
+- `onFinishMessagePart`: Message generation complete
+- `onErrorPart`: Handle streaming errors
+- `onStartStepPart`: Step starts (for multi-step responses)
+- `onFinishStepPart`: Step completes
+
+#### Memory Integration
+
+Streaming automatically integrates with Mastra's memory system:
+
+```typescript
+// Messages are automatically saved to thread memory
+const response = await mastra_sdk.stream({
+  messages: [userMessage],
+  resourceId: "user-123",
+  threadId: existingThreadId  // Uses existing conversation context
+});
+
+// After streaming, messages are available via getMessages()
+const thread = await mastra_sdk.getMemoryThread(threadId, agentId);
+const { uiMessages } = await thread.getMessages();
+``` 

@@ -42,6 +42,37 @@ const messages = await threadObj.getMessages();
 // Use: messages.uiMessages for UI display
 ```
 
+### 5. Stream Messages (NEW)
+```typescript
+// Get agent instance
+const agent = mastra_sdk.getAgent("articleAgent");
+
+// Stream message with real-time response
+const response = await agent.stream({
+  messages: ["What's the latest in AI research?"],
+  resourceId: "user-123",
+  threadId: "thread_1705123456789"
+});
+
+// Process stream events
+await response.processDataStream({
+  onTextPart: (text) => {
+    console.log('Text chunk:', text);
+    // Update UI with streaming text
+  },
+  onReasoningPart: (reasoning) => {
+    console.log('AI reasoning:', reasoning);
+  },
+  onToolCallPart: (toolCall) => {
+    console.log('Tool used:', toolCall);
+  },
+  onFinishMessagePart: (message) => {
+    console.log('Message complete');
+    // Refresh thread messages
+  }
+});
+```
+
 ## Message Structure
 ```typescript
 // Response format
@@ -107,6 +138,40 @@ const renderMessage = (msg) => {
 };
 ```
 
+### Real-time Chat Hook (NEW)
+```typescript
+const useMessageStream = () => {
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingMessage, setStreamingMessage] = useState(null);
+
+  const sendMessage = async (message, threadId) => {
+    setIsStreaming(true);
+    const agent = mastra_sdk.getAgent("articleAgent");
+    
+    const response = await agent.stream({
+      messages: [message],
+      resourceId: "user-123",
+      threadId
+    });
+
+    await response.processDataStream({
+      onTextPart: (text) => {
+        setStreamingMessage(prev => ({
+          ...prev,
+          content: (prev?.content || '') + text
+        }));
+      },
+      onFinishMessagePart: () => {
+        setIsStreaming(false);
+        // Refresh full conversation
+      }
+    });
+  };
+
+  return { isStreaming, streamingMessage, sendMessage };
+};
+```
+
 ### Thread Management Hook
 ```typescript
 const useThreads = (resourceId, agentId) => {
@@ -128,6 +193,14 @@ const useThreads = (resourceId, agentId) => {
   return { threads, loading, fetchThreads };
 };
 ```
+
+## Stream Events Reference
+- `onTextPart`: Receive text chunks in real-time
+- `onReasoningPart`: AI thinking process  
+- `onToolCallPart`: Tool invocations
+- `onToolResultPart`: Tool execution results
+- `onFinishMessagePart`: Message generation complete
+- `onErrorPart`: Handle streaming errors
 
 ## Key Constants
 ```typescript

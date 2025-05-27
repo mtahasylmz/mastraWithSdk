@@ -15,7 +15,7 @@ interface UseThreadsReturn {
   loading: boolean;
   error: string | null;
   fetchThreads: () => Promise<void>;
-  createThread: (title?: string, metadata?: Record<string, any>) => Promise<Thread | null>;
+  generateThreadId: () => string;
   deleteThread: (threadId: string) => Promise<boolean>;
   refreshThreads: () => Promise<void>;
 }
@@ -52,9 +52,20 @@ export const useThreads = (): UseThreadsReturn => {
       console.log('📦 fetchThreads: Result type:', typeof result, 'isArray:', Array.isArray(result));
       
       if (result && Array.isArray(result)) {
-        console.log('✅ fetchThreads: Setting threads, count:', result.length);
-        console.log('📋 fetchThreads: Thread IDs:', result.map(t => t.id));
-        setThreads(result);
+        // Sort threads by updatedAt in descending order (newest first)
+        const sortedThreads = result.sort((a: Thread, b: Thread) => {
+          const aUpdated = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+          const bUpdated = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+          return bUpdated - aUpdated;
+        });
+        
+        console.log('✅ fetchThreads: Setting sorted threads, count:', sortedThreads.length);
+        console.log('📋 fetchThreads: Thread IDs (sorted by updatedAt):', sortedThreads.map(t => ({ 
+          id: t.id, 
+          title: t.title, 
+          updatedAt: t.updatedAt 
+        })));
+        setThreads(sortedThreads);
       } else {
         console.log('⚠️ fetchThreads: No valid array result, setting empty array');
         setThreads([]);
@@ -68,65 +79,15 @@ export const useThreads = (): UseThreadsReturn => {
     }
   }, []);
 
-  const createThread = useCallback(async (
-    title: string = THREAD_CONFIG.defaultTitle,
-    metadata: Record<string, any> = THREAD_CONFIG.defaultMetadata
-  ): Promise<Thread | null> => {
-    console.log('🔄 Creating thread with:', { title, metadata });
+  const generateThreadId = useCallback((): string => {
+    const uniquePart = typeof crypto !== 'undefined' && crypto.randomUUID 
+      ? crypto.randomUUID()
+      : `${Date.now()}_${Math.random().toString(36).substring(2)}`;
     
-    // Generate a more unique thread ID using crypto.randomUUID if available, otherwise fallback
-    const threadId = typeof crypto !== 'undefined' && crypto.randomUUID 
-      ? `thread_${crypto.randomUUID()}` 
-      : `thread_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-    
-    console.log('🆔 Generated threadId:', threadId);
-    
-    const newThread = await safeApiCall(() =>
-      mastra_sdk.createMemoryThread({
-        threadId,
-        title,
-        metadata,
-        resourceId: MASTRA_CONFIG.resourceId,
-        agentId: MASTRA_CONFIG.agentId,
-      })
-    );
-
-    console.log('📦 Raw response from createMemoryThread:', newThread);
-
-    if (newThread) {
-      // Use the actual thread ID returned by Mastra (in case it's different from what we provided)
-      const actualThread: Thread = {
-        id: newThread.id, // Use Mastra's actual thread ID
-        title: newThread.title,
-        metadata: newThread.metadata,
-        createdAt: newThread.createdAt,
-        updatedAt: newThread.updatedAt,
-      };
-      
-      console.log('✅ Processed thread object:', actualThread);
-      console.log('📋 Current threads before update:', threads.length);
-      
-      // Add to local state immediately for responsive UI
-      setThreads(prev => {
-        const updated = [actualThread, ...prev];
-        console.log('📋 Updated threads array length:', updated.length);
-        console.log('📋 Updated threads:', updated.map(t => ({ id: t.id, title: t.title })));
-        return updated;
-      });
-      
-      // Refresh threads from server to ensure persistence
-      console.log('🔄 Triggering fetchThreads for server sync...');
-      fetchThreads().catch(err => {
-        console.error('❌ Error during fetchThreads:', err);
-      });
-      
-      return actualThread;
-    } else {
-      console.log('❌ createMemoryThread returned null/undefined');
-    }
-    
-    return null;
-  }, [fetchThreads, threads.length]);
+    const threadId = `thread_${uniquePart}`;
+    console.log('🆔 Generated new thread ID for auto-creation:', threadId);
+    return threadId;
+  }, []);
 
   const deleteThread = useCallback(async (threadId: string): Promise<boolean> => {
     try {
@@ -156,7 +117,7 @@ export const useThreads = (): UseThreadsReturn => {
     loading,
     error,
     fetchThreads,
-    createThread,
+    generateThreadId,
     deleteThread,
     refreshThreads,
   };

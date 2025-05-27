@@ -49,7 +49,7 @@ const threads = await mastra_sdk.getMemoryThreads({
 console.log(threads); // [{ id, title, metadata, createdAt, updatedAt }, ...]
 ```
 
-#### 2. Create New Thread
+#### 2. Create New Thread (Explicit Method)
 
 ```typescript
 const newThread = await mastra_sdk.createMemoryThread({
@@ -63,7 +63,39 @@ const newThread = await mastra_sdk.createMemoryThread({
 // Returns: Thread object with created thread details
 ```
 
-#### 3. Get Single Thread Object
+#### 3. Auto-Thread Creation During Streaming ⭐ **RECOMMENDED**
+
+**IMPORTANT DISCOVERY**: Mastra automatically creates threads when you stream messages to non-existent thread IDs. This is the preferred method for thread creation as it's simpler and more reliable.
+
+```typescript
+// Generate a unique thread ID
+const newThreadId = `thread_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+
+// Stream directly to the non-existent thread - Mastra will auto-create it!
+const agent = mastra_sdk.getAgent("articleAgent");
+const response = await agent.stream({
+  messages: ["Hello! Let's start a new conversation."],
+  resourceId: "user-123",
+  threadId: newThreadId  // Thread doesn't exist yet - will be auto-created
+});
+
+await response.processDataStream({
+  onFinishMessagePart: () => {
+    // Thread now exists with both user and assistant messages
+    // Title is automatically generated based on message content
+    console.log('Thread auto-created during streaming!');
+  }
+});
+```
+
+**Auto-Creation Benefits:**
+- ✅ **Automatic title generation** based on message content
+- ✅ **No manual thread creation** required
+- ✅ **Messages saved automatically** during streaming
+- ✅ **Simpler error handling** - no separate creation step to fail
+- ✅ **Thread appears in thread list** immediately after streaming
+
+#### 4. Get Single Thread Object
 
 ```typescript
 const thread = await mastra_sdk.getMemoryThread(threadId, agentId);
@@ -343,7 +375,51 @@ const CONFIG = {
 };
 ```
 
-### 3. Message Rendering
+### 3. Thread Creation Strategy ⭐ **UPDATED**
+
+**RECOMMENDED**: Use auto-thread creation via streaming instead of explicit thread creation:
+
+```typescript
+// ✅ PREFERRED: Auto-create threads via streaming
+const createNewConversation = async (firstMessage: string) => {
+  const threadId = `thread_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+  
+  const agent = mastra_sdk.getAgent(CONFIG.agentId);
+  const response = await agent.stream({
+    messages: [firstMessage],
+    resourceId: CONFIG.resourceId,
+    threadId: threadId
+  });
+  
+  await response.processDataStream({
+    onFinishMessagePart: () => {
+      // Thread auto-created with intelligent title
+      refreshThreadList(); // Update UI
+    }
+  });
+  
+  return threadId;
+};
+
+// ❌ AVOID: Manual thread creation (more complex, prone to errors)
+const manualThreadCreation = async () => {
+  try {
+    const thread = await mastra_sdk.createMemoryThread({
+      threadId: `thread_${Date.now()}`,
+      title: "Generic Title", // Less intelligent than auto-generated
+      metadata: {},
+      resourceId: CONFIG.resourceId,
+      agentId: CONFIG.agentId,
+    });
+    return thread.id;
+  } catch (error) {
+    // Additional error handling needed
+    console.error('Manual thread creation failed:', error);
+  }
+};
+```
+
+### 4. Message Rendering
 
 ```typescript
 // Prefer uiMessages for display
@@ -369,7 +445,7 @@ const renderMessage = (message: UIMessage) => {
 };
 ```
 
-### 4. Loading States & Error Handling
+### 5. Loading States & Error Handling
 
 ```typescript
 const [loading, setLoading] = useState(false);

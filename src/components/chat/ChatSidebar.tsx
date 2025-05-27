@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, MessageSquare, Loader2, AlertCircle, Trash2 } from "lucide-react";
-import { useThreads } from "@/hooks/useThreads";
 import { useEffect } from "react";
 
 interface Thread {
@@ -14,36 +13,42 @@ interface Thread {
 
 interface ChatSidebarProps {
   activeThreadId: string | null;
+  threads: Thread[];
+  loading: boolean;
+  error: string | null;
   onThreadSelect: (id: string) => void;
   onNewThread: () => void;
+  onDeleteThread: (threadId: string) => Promise<boolean>;
+  onRefresh: () => void;
 }
 
-const ChatSidebar = ({ activeThreadId, onThreadSelect, onNewThread }: ChatSidebarProps) => {
-  const { threads, loading, error, createThread, deleteThread, refreshThreads } = useThreads();
-
+const ChatSidebar = ({ 
+  activeThreadId, 
+  threads, 
+  loading, 
+  error, 
+  onThreadSelect, 
+  onNewThread, 
+  onDeleteThread,
+  onRefresh
+}: ChatSidebarProps) => {
   // Debug logging for threads changes
   useEffect(() => {
     console.log('🎨 ChatSidebar: threads updated, count:', threads.length);
     console.log('🎨 ChatSidebar: threads data:', threads.map(t => ({ id: t.id, title: t.title })));
   }, [threads]);
 
-  const handleNewThread = async () => {
-    console.log('🎯 ChatSidebar: handleNewThread called');
-    const newThread = await createThread();
-    console.log('🎯 ChatSidebar: createThread returned:', newThread);
-    if (newThread) {
-      console.log('🎯 ChatSidebar: Selecting new thread:', newThread.id);
-      onThreadSelect(newThread.id);
-      onNewThread(); // Call the parent callback
-    } else {
-      console.log('❌ ChatSidebar: Failed to create thread');
-    }
+  // 🔥 IMPROVED: Let parent handle thread generation for better state management
+  const handleNewThread = () => {
+    console.log('🎯 ChatSidebar: handleNewThread called - delegating to parent');
+    // Parent will generate thread ID and manage state
+    onNewThread();
   };
 
   const handleDeleteThread = async (threadId: string, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent thread selection
     if (confirm('Are you sure you want to delete this conversation?')) {
-      const success = await deleteThread(threadId);
+      const success = await onDeleteThread(threadId);
       if (success && activeThreadId === threadId) {
         // If deleted thread was active, clear selection
         onThreadSelect('');
@@ -67,14 +72,9 @@ const ChatSidebar = ({ activeThreadId, onThreadSelect, onNewThread }: ChatSideba
       <div className="p-4 border-b border-gray-700">
         <Button
           onClick={handleNewThread}
-          disabled={loading}
           className="w-full bg-gray-700 hover:bg-gray-600 text-white"
         >
-          {loading ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Plus className="h-4 w-4 mr-2" />
-          )}
+          <Plus className="h-4 w-4 mr-2" />
           New Chat
         </Button>
       </div>
@@ -89,7 +89,7 @@ const ChatSidebar = ({ activeThreadId, onThreadSelect, onNewThread }: ChatSideba
           <Button
             variant="ghost"
             size="sm"
-            onClick={refreshThreads}
+            onClick={onRefresh}
             className="mt-2 text-red-300 hover:text-red-200"
           >
             Retry

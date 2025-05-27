@@ -32,12 +32,16 @@ interface UseMessagesReturn {
   error: string | null;
   fetchMessages: (threadId: string) => Promise<void>;
   clearMessages: () => void;
+  addMessage: (message: UIMessage) => void;
+  appendStreamedMessage: (message: UIMessage) => void;
+  updateLastMessage: (updater: (prev: UIMessage) => UIMessage) => void;
 }
 
 export const useMessages = (): UseMessagesReturn => {
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastFetchedThreadId, setLastFetchedThreadId] = useState<string | null>(null);
 
   const safeApiCall = async <T,>(apiFunction: () => Promise<T>): Promise<T | null> => {
     try {
@@ -54,50 +58,111 @@ export const useMessages = (): UseMessagesReturn => {
   const fetchMessages = useCallback(async (threadId: string) => {
     if (!threadId) {
       setMessages([]);
+      setLastFetchedThreadId(null);
+      return;
+    }
+
+    if (lastFetchedThreadId === threadId && messages.length > 0) {
+      console.log('📝 Skipping fetch - messages already loaded for thread:', threadId);
       return;
     }
 
     setLoading(true);
     try {
-      // getMemoryThread returns MemoryThread directly, not a promise
       const thread = await mastra_sdk.getMemoryThread(threadId, MASTRA_CONFIG.agentId);
 
       if (thread && typeof thread.getMessages === 'function') {
-        const messagesResponse = await safeApiCall(() => thread.getMessages());
-        
-        if (messagesResponse && (messagesResponse as any).uiMessages) {
-          // Use uiMessages for display (preferred by Mastra)
-          setMessages((messagesResponse as any).uiMessages);
-        } else if (messagesResponse && (messagesResponse as any).messages) {
-          // Fallback to regular messages if uiMessages not available
-          const convertedMessages: UIMessage[] = (messagesResponse as any).messages.map((msg: any) => ({
-            id: msg.id || Date.now().toString(),
-            content: msg.content || '',
-            role: msg.role || 'assistant',
-            createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
-            parts: msg.parts || [],
-            toolInvocations: msg.toolInvocations || [],
-            reasoning: msg.reasoning,
-          }));
-          setMessages(convertedMessages);
-        } else {
-          setMessages([]);
+        try {
+          const messagesResponse = await thread.getMessages();
+          
+          if (messagesResponse && (messagesResponse as any).uiMessages) {
+            setMessages((messagesResponse as any).uiMessages);
+            setLastFetchedThreadId(threadId);
+          } else if (messagesResponse && (messagesResponse as any).messages) {
+            const convertedMessages: UIMessage[] = (messagesResponse as any).messages.map((msg: any) => ({
+              id: msg.id || Date.now().toString(),
+              content: msg.content || '',
+              role: msg.role || 'assistant',
+              createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
+              parts: msg.parts || [],
+              toolInvocations: msg.toolInvocations || [],
+              reasoning: msg.reasoning,
+            }));
+            setMessages(convertedMessages);
+            setLastFetchedThreadId(threadId);
+          } else {
+            setMessages([]);
+            setLastFetchedThreadId(threadId);
+          }
+          
+          setError(null);
+          
+        } catch (messageError: any) {
+          if (messageError?.status === 404 || 
+              messageError?.message?.includes('404') || 
+              messageError?.message?.includes('not found') ||
+              messageError?.message?.includes('Thread not found')) {
+            console.log('📝 Thread not found (expected for new threads):', threadId);
+            setMessages([]);
+            setLastFetchedThreadId(threadId);
+            setError(null);
+          } else {
+            console.error('Error fetching messages:', messageError);
+            setError(messageError instanceof Error ? messageError.message : 'Failed to load messages');
+            setMessages([]);
+            setLastFetchedThreadId(null);
+          }
         }
       } else {
         console.warn('Thread object invalid or missing getMessages method');
         setMessages([]);
+        setLastFetchedThreadId(threadId);
+        setError(null);
       }
-    } catch (err) {
-      console.error('Error fetching messages:', err);
-      setMessages([]);
+    } catch (err: any) {
+      if (err?.status === 404 || 
+          err?.message?.includes('404') || 
+          err?.message?.includes('not found') ||
+          err?.message?.includes('Thread not found')) {
+        console.log('📝 Thread not found (expected for new threads):', threadId);
+        setMessages([]);
+        setLastFetchedThreadId(threadId);
+        setError(null);
+      } else {
+        console.error('Error getting thread:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load thread');
+        setMessages([]);
+        setLastFetchedThreadId(null);
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [messages.length, lastFetchedThreadId]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
+    setLastFetchedThreadId(null);
     setError(null);
+  }, []);
+
+  const addMessage = useCallback((message: UIMessage) => {
+    setMessages(prev => [...prev, message]);
+  }, []);
+
+  const appendStreamedMessage = useCallback((message: UIMessage) => {
+    setMessages(prev => {
+      const withoutStreaming = prev.filter(msg => !msg.id.startsWith('streaming_'));
+      return [...withoutStreaming, message];
+    });
+  }, []);
+
+  const updateLastMessage = useCallback((updater: (prev: UIMessage) => UIMessage) => {
+    setMessages(prev => {
+      if (prev.length === 0) return prev;
+      const updated = [...prev];
+      updated[updated.length - 1] = updater(updated[updated.length - 1]);
+      return updated;
+    });
   }, []);
 
   return {
@@ -106,5 +171,8 @@ export const useMessages = (): UseMessagesReturn => {
     error,
     fetchMessages,
     clearMessages,
+    addMessage,
+    appendStreamedMessage,
+    updateLastMessage,
   };
 }; 

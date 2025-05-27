@@ -5,13 +5,16 @@ import ChatInput from "./ChatInput";
 import { Button } from "@/components/ui/button";
 import { Menu, AlertCircle } from "lucide-react";
 import { useMessages, useMessageStream, UIMessage } from "@/hooks";
+import { useThreads } from "@/hooks/useThreads";
 
 const ChatInterface = () => {
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [newlyCreatedThreads, setNewlyCreatedThreads] = useState<Set<string>>(new Set());
 
-  const { messages, loading: messagesLoading, error: messagesError, fetchMessages, clearMessages } = useMessages();
+  const { messages, loading: messagesLoading, error: messagesError, fetchMessages, clearMessages, addMessage, appendStreamedMessage } = useMessages();
   const { isStreaming, streamingMessage, error: streamError, sendMessage, clearStreamingMessage } = useMessageStream();
+  const { threads, loading: threadsLoading, error: threadsError, fetchThreads, generateThreadId, deleteThread } = useThreads();
 
   // Fetch messages when thread changes
   useEffect(() => {
@@ -34,9 +37,17 @@ const ChatInterface = () => {
   };
 
   const handleNewThread = () => {
-    // The thread creation is handled in ChatSidebar
-    // This callback is for any additional UI updates if needed
-    console.log('New thread created');
+    // 🔥 IMPROVED: Generate thread ID at ChatInterface level for better state management
+    const newThreadId = generateThreadId();
+    console.log('🆕 ChatInterface: New thread created:', newThreadId);
+    
+    // Track this as a newly created thread
+    setNewlyCreatedThreads(prev => new Set(prev).add(newThreadId));
+    
+    // Immediately set as active thread - will auto-create on first message
+    setActiveThreadId(newThreadId);
+    clearMessages(); // Clear messages for new conversation
+    clearStreamingMessage();
   };
 
   const handleSendMessage = async (content: string) => {
@@ -45,11 +56,50 @@ const ChatInterface = () => {
       return;
     }
 
+    console.log('📤 ChatInterface: Sending message to thread:', activeThreadId);
+
+    // 🔥 INCREMENTAL: Immediately add user message to UI for instant feedback
+    const userMessage: UIMessage = {
+      id: `user_${Date.now()}`,
+      content,
+      role: 'user',
+      createdAt: new Date(),
+    };
+
+    // Add user message immediately to messages state
+    addMessage(userMessage);
+
     try {
-      // Send message with streaming and refresh messages when complete
-      await sendMessage(content, activeThreadId, () => {
-        console.log('🔄 Streaming complete, refreshing messages...');
-        fetchMessages(activeThreadId);
+      // 🔥 IMPROVED: Send message with streaming and use incremental updates
+      await sendMessage(content, activeThreadId, async (assistantMessage: UIMessage) => {
+        console.log('🔄 Stream complete, appending assistant message incrementally...');
+        
+        // 🔥 NEW: Append the assistant message incrementally (no full refetch!)
+        appendStreamedMessage(assistantMessage);
+        
+        // Clear streaming message AFTER adding the real message
+        setTimeout(() => {
+          clearStreamingMessage();
+        }, 100); // Small delay to ensure UI updates smoothly
+        
+        // 🔥 IMPROVED: Only refresh thread list if this is a newly created thread
+        if (newlyCreatedThreads.has(activeThreadId)) {
+          console.log('🔄 Refreshing thread list for newly auto-created thread:', activeThreadId);
+          
+          // Small delay to ensure server operations are complete
+          setTimeout(async () => {
+            await fetchThreads();
+            
+            // Remove from newly created set since it's now persisted
+            setNewlyCreatedThreads(prev => {
+              const updated = new Set(prev);
+              updated.delete(activeThreadId);
+              return updated;
+            });
+          }, 1000);
+        }
+        
+        console.log('✅ Incremental message update completed - no full refetch!');
       });
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -62,9 +112,28 @@ const ChatInterface = () => {
   };
 
   // Combine regular messages with streaming message for display
-  const allMessages = streamingMessage 
+  // If we have a streaming message, check if we already have a similar real message to avoid duplicates
+  const allMessages = streamingMessage && streamingMessage.isStreaming
     ? [...messages, streamingMessage as UIMessage] 
     : messages;
+
+  // 🔥 DEBUG: Log the message combination
+  console.log('🎬 ChatInterface render:', {
+    messagesCount: messages.length,
+    hasStreamingMessage: !!streamingMessage,
+    isStreamingActive: streamingMessage?.isStreaming,
+    allMessagesCount: allMessages.length,
+    streamingContent: streamingMessage?.content,
+    streamingContentLength: streamingMessage?.content?.length || 0,
+    // 🔥 NEW: More detailed debugging
+    streamingId: streamingMessage?.id,
+    streamingPartsCount: streamingMessage?.parts?.length || 0
+  });
+
+  // 🔥 NEW: Force a key change when streaming to ensure re-renders
+  const chatMessagesKey = streamingMessage?.isStreaming 
+    ? `streaming-${streamingMessage.content?.length || 0}` 
+    : `static-${messages.length}`;
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -72,8 +141,13 @@ const ChatInterface = () => {
       <div className={`${sidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden`}>
         <ChatSidebar
           activeThreadId={activeThreadId}
+          threads={threads}
+          loading={threadsLoading}
+          error={threadsError}
           onThreadSelect={handleThreadSelect}
           onNewThread={handleNewThread}
+          onDeleteThread={deleteThread}
+          onRefresh={fetchThreads}
         />
       </div>
 
@@ -96,6 +170,9 @@ const ChatInterface = () => {
               <p className="text-sm text-gray-500">
                 Powered by Mastra AI • Article Research Agent
                 {isStreaming && " • Generating response..."}
+                {/* 🔥 NEW: Show streaming content length for debugging */}
+                {isStreaming && streamingMessage?.content && 
+                  ` • ${streamingMessage.content.length} chars`}
               </p>
             )}
           </div>
@@ -123,6 +200,7 @@ const ChatInterface = () => {
                 </div>
               ) : (
                 <ChatMessages 
+                  key={chatMessagesKey} // 🔥 NEW: Force re-render with streaming content changes
                   messages={allMessages} 
                   isLoading={isStreaming}
                 />

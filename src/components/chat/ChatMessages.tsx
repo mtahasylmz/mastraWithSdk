@@ -3,6 +3,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { User, Bot, Loader2, Code, Lightbulb, Wrench } from "lucide-react";
 import { UIMessage } from "@/hooks/useMessages";
+import MarkdownRenderer from "@/components/ui/MarkdownRenderer";
 
 interface ChatMessagesProps {
   messages: UIMessage[];
@@ -33,92 +34,118 @@ const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => {
   };
 
   const renderMessageContent = (message: UIMessage) => {
-    // If message has parts, render them individually
+    const isStreaming = (message as any).isStreaming;
+    
+    // 🔥 FIXED: For streaming messages, just show the accumulated content
+    if (isStreaming) {
+      return (
+        <div>
+          {message.content ? (
+            <MarkdownRenderer content={message.content} />
+          ) : (
+            <div className="flex items-center gap-2 text-gray-500">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span className="text-xs">Generating response...</span>
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    // 🔥 FIXED: For completed messages, collect text parts and render non-text parts separately
     if (message.parts && message.parts.length > 0) {
-      return message.parts.map((part, index) => {
-        switch (part.type) {
-          case 'text':
-            return (
-              <div key={index} className="whitespace-pre-wrap">
-                {part.text}
-              </div>
-            );
+      // Collect all text parts into one continuous string to avoid div wrapping
+      const textParts = message.parts.filter(part => part.type === 'text');
+      const nonTextParts = message.parts.filter(part => part.type !== 'text');
+      
+      return (
+        <>
+          {/* 🔥 FIXED: Render all text as markdown */}
+          {textParts.length > 0 && (
+            <MarkdownRenderer 
+              content={textParts.map(part => part.text).join('')}
+            />
+          )}
           
-          case 'reasoning':
-            return (
-              <div key={index} className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-400">
-                <div className="flex items-center gap-2 mb-2">
-                  <Lightbulb className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                    Reasoning
-                  </span>
-                </div>
-                <p className="text-sm text-blue-800 dark:text-blue-200 italic">
-                  {part.reasoning}
-                </p>
-              </div>
-            );
-          
-          case 'tool-invocation':
-            return (
-              <div key={index} className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border-l-4 border-amber-400">
-                <div className="flex items-center gap-2 mb-2">
-                  <Wrench className="h-4 w-4 text-amber-600" />
-                  <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
-                    Tool Used
-                  </span>
-                </div>
-                <pre className="text-xs text-amber-800 dark:text-amber-200 overflow-x-auto bg-amber-100 dark:bg-amber-900/40 p-2 rounded">
-                  {JSON.stringify(part.toolInvocation, null, 2)}
-                </pre>
-              </div>
-            );
-          
-          case 'source':
-            return (
-              <div key={index} className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border-l-4 border-green-400">
-                <div className="flex items-center gap-2 mb-2">
-                  <Code className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                    Source
-                  </span>
-                </div>
-                <pre className="text-xs text-green-800 dark:text-green-200 overflow-x-auto bg-green-100 dark:bg-green-900/40 p-2 rounded">
-                  {JSON.stringify(part.source, null, 2)}
-                </pre>
-              </div>
-            );
-          
-          case 'file':
-            return (
-              <div key={index} className="mt-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border-l-4 border-purple-400">
-                <div className="flex items-center gap-2 mb-2">
-                  <Code className="h-4 w-4 text-purple-600" />
-                  <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
-                    File ({part.mimeType})
-                  </span>
-                </div>
-                <div className="text-xs text-purple-800 dark:text-purple-200">
-                  {part.data ? 'File data available' : 'No file data'}
-                </div>
-              </div>
-            );
-          
-          default:
-            return (
-              <div key={index} className="mt-2 text-sm text-gray-500">
-                <strong>Unknown part type:</strong> {part.type}
-              </div>
-            );
-        }
-      });
+          {/* Render non-text parts with their special formatting */}
+          {nonTextParts.map((part, index) => {
+            switch (part.type) {
+              case 'reasoning':
+                return (
+                  <div key={index} className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-400">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Lightbulb className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                        Reasoning
+                      </span>
+                    </div>
+                    <MarkdownRenderer 
+                      content={part.reasoning || ''} 
+                      className="text-sm text-blue-800 dark:text-blue-200 italic"
+                    />
+                  </div>
+                );
+              
+              case 'tool-invocation':
+                return (
+                  <div key={index} className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border-l-4 border-amber-400">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Wrench className="h-4 w-4 text-amber-600" />
+                      <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                        Tool Used
+                      </span>
+                    </div>
+                    <pre className="text-xs text-amber-800 dark:text-amber-200 overflow-x-auto bg-amber-100 dark:bg-amber-900/40 p-2 rounded">
+                      {JSON.stringify(part.toolInvocation, null, 2)}
+                    </pre>
+                  </div>
+                );
+              
+              case 'source':
+                return (
+                  <div key={index} className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border-l-4 border-green-400">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Code className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                        Source
+                      </span>
+                    </div>
+                    <pre className="text-xs text-green-800 dark:text-green-200 overflow-x-auto bg-green-100 dark:bg-green-900/40 p-2 rounded">
+                      {JSON.stringify(part.source, null, 2)}
+                    </pre>
+                  </div>
+                );
+              
+              case 'file':
+                return (
+                  <div key={index} className="mt-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border-l-4 border-purple-400">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Code className="h-4 w-4 text-purple-600" />
+                      <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                        File ({part.mimeType})
+                      </span>
+                    </div>
+                    <div className="text-xs text-purple-800 dark:text-purple-200">
+                      {part.data ? 'File data available' : 'No file data'}
+                    </div>
+                  </div>
+                );
+              
+              default:
+                return (
+                  <div key={index} className="mt-2 text-sm text-gray-500">
+                    <strong>Unknown part type:</strong> {part.type}
+                  </div>
+                );
+            }
+          })}
+        </>
+      );
     }
 
     // Fallback to content if no parts
     return (
-      <div className="whitespace-pre-wrap">
-        {message.content}
-      </div>
+      <MarkdownRenderer content={message.content} />
     );
   };
 
@@ -148,32 +175,25 @@ const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => {
           </Avatar>
         )}
         
-        <div className={`max-w-[70%] ${isUser ? "order-first" : ""}`}>
+        <div className={`flex-1 max-w-[70%] ${isUser ? "order-first" : ""}`}>
           <div
             className={`rounded-2xl px-4 py-3 ${
               isUser
                 ? "bg-blue-600 text-white"
                 : isSystem
                 ? "bg-gray-100 border border-gray-200 text-gray-700"
-                : isStreaming
-                ? "bg-blue-50 border border-blue-200 text-gray-900"
                 : "bg-white border border-gray-200 text-gray-900"
             }`}
           >
             <div className="text-sm leading-relaxed">
               {renderMessageContent(message)}
-              {isStreaming && message.content === '' && (
-                <div className="flex items-center gap-2 text-gray-500">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span className="text-xs">Generating response...</span>
-                </div>
-              )}
             </div>
             
-            {/* Show standalone reasoning if not in parts */}
-            {message.reasoning && (!message.parts || message.parts.length === 0) && (
+            {/* Show standalone reasoning if not in parts and not streaming */}
+            {!isStreaming && message.reasoning && (!message.parts || message.parts.length === 0) && (
               <div className="mt-3 p-2 bg-blue-50 rounded text-xs italic text-blue-700">
-                <strong>Reasoning:</strong> {message.reasoning}
+                <strong>Reasoning:</strong>
+                <MarkdownRenderer content={message.reasoning} className="mt-1" />
               </div>
             )}
             
@@ -213,6 +233,9 @@ const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => {
     );
   };
 
+  // Filter out duplicate streaming messages that appear after refresh
+  const hasStreamingMessage = messages.some(msg => (msg as any).isStreaming);
+
   return (
     <ScrollArea className="h-full p-4" ref={scrollAreaRef}>
       <div className="space-y-6 max-w-4xl mx-auto">
@@ -230,7 +253,8 @@ const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => {
           messages.map(renderMessage)
         )}
 
-        {isLoading && (
+        {/* Only show loading bubble if not streaming and isLoading is true */}
+        {isLoading && !hasStreamingMessage && (
           <div className="flex gap-4 justify-start">
             <Avatar className="w-8 h-8 flex-shrink-0">
               <AvatarFallback className="bg-blue-100">

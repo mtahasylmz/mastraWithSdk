@@ -133,6 +133,7 @@
     --color-gray-700: oklch(37.3% 0.034 259.733);
     --color-gray-800: oklch(27.8% 0.033 256.848);
     --color-gray-900: oklch(21% 0.034 264.665);
+    --color-black: #000;
     --color-white: #fff;
     --spacing: 0.25rem;
     --container-sm: 24rem;
@@ -154,6 +155,7 @@
     --text-6xl--line-height: 1;
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
+    --font-weight-bold: 700;
     --leading-relaxed: 1.625;
     --radius-2xl: 1rem;
     --radius-3xl: 1.5rem;
@@ -389,6 +391,12 @@
   .my-1 {
     margin-block: calc(var(--spacing) * 1);
   }
+  .my-2 {
+    margin-block: calc(var(--spacing) * 2);
+  }
+  .my-3 {
+    margin-block: calc(var(--spacing) * 3);
+  }
   .mt-1 {
     margin-top: calc(var(--spacing) * 1);
   }
@@ -428,6 +436,9 @@
   .ml-2 {
     margin-left: calc(var(--spacing) * 2);
   }
+  .block {
+    display: block;
+  }
   .flex {
     display: flex;
   }
@@ -436,6 +447,9 @@
   }
   .inline-flex {
     display: inline-flex;
+  }
+  .table {
+    display: table;
   }
   .field-sizing-content {
     field-sizing: content;
@@ -569,6 +583,9 @@
   .min-w-0 {
     min-width: calc(var(--spacing) * 0);
   }
+  .min-w-full {
+    min-width: 100%;
+  }
   .flex-1 {
     flex: 1;
   }
@@ -599,6 +616,15 @@
   }
   .resize-none {
     resize: none;
+  }
+  .list-inside {
+    list-style-position: inside;
+  }
+  .list-decimal {
+    list-style-type: decimal;
+  }
+  .list-disc {
+    list-style-type: disc;
   }
   .auto-rows-min {
     grid-auto-rows: min-content;
@@ -647,6 +673,13 @@
   }
   .gap-6 {
     gap: calc(var(--spacing) * 6);
+  }
+  .space-y-0\.5 {
+    :where(& > :not(:last-child)) {
+      --tw-space-y-reverse: 0;
+      margin-block-start: calc(calc(var(--spacing) * 0.5) * var(--tw-space-y-reverse));
+      margin-block-end: calc(calc(var(--spacing) * 0.5) * calc(1 - var(--tw-space-y-reverse)));
+    }
   }
   .space-y-1 {
     :where(& > :not(:last-child)) {
@@ -697,6 +730,11 @@
       border-color: var(--color-gray-100);
     }
   }
+  .divide-gray-200 {
+    :where(& > :not(:last-child)) {
+      border-color: var(--color-gray-200);
+    }
+  }
   .self-start {
     align-self: flex-start;
   }
@@ -744,6 +782,10 @@
   .rounded-xl {
     border-radius: calc(var(--radius) + 4px);
   }
+  .rounded-r {
+    border-top-right-radius: 0.25rem;
+    border-bottom-right-radius: 0.25rem;
+  }
   .border {
     border-style: var(--tw-border-style);
     border-width: 1px;
@@ -772,6 +814,10 @@
     border-left-style: var(--tw-border-style);
     border-left-width: 1px;
   }
+  .border-l-3 {
+    border-left-style: var(--tw-border-style);
+    border-left-width: 3px;
+  }
   .border-l-4 {
     border-left-style: var(--tw-border-style);
     border-left-width: 4px;
@@ -796,6 +842,9 @@
   }
   .border-gray-300 {
     border-color: var(--color-gray-300);
+  }
+  .border-gray-400 {
+    border-color: var(--color-gray-400);
   }
   .border-gray-600 {
     border-color: var(--color-gray-600);
@@ -832,6 +881,18 @@
   }
   .bg-background {
     background-color: var(--background);
+  }
+  .bg-black\/5 {
+    background-color: color-mix(in srgb, #000 5%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-black) 5%, transparent);
+    }
+  }
+  .bg-black\/10 {
+    background-color: color-mix(in srgb, #000 10%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-black) 10%, transparent);
+    }
   }
   .bg-blue-50 {
     background-color: var(--color-blue-50);
@@ -938,6 +999,9 @@
   .p-px {
     padding: 1px;
   }
+  .px-1\.5 {
+    padding-inline: calc(var(--spacing) * 1.5);
+  }
   .px-2 {
     padding-inline: calc(var(--spacing) * 2);
   }
@@ -949,6 +1013,9 @@
   }
   .px-6 {
     padding-inline: calc(var(--spacing) * 6);
+  }
+  .py-0\.5 {
+    padding-block: calc(var(--spacing) * 0.5);
   }
   .py-1 {
     padding-block: calc(var(--spacing) * 1);
@@ -968,6 +1035,15 @@
   .py-12 {
     padding-block: calc(var(--spacing) * 12);
   }
+  .pb-1 {
+    padding-bottom: calc(var(--spacing) * 1);
+  }
+  .pl-2 {
+    padding-left: calc(var(--spacing) * 2);
+  }
+  .pl-3 {
+    padding-left: calc(var(--spacing) * 3);
+  }
   .pl-10 {
     padding-left: calc(var(--spacing) * 10);
   }
@@ -976,6 +1052,9 @@
   }
   .text-left {
     text-align: left;
+  }
+  .font-mono {
+    font-family: var(--font-mono);
   }
   .text-2xl {
     font-size: var(--text-2xl);
@@ -1012,6 +1091,10 @@
   .leading-relaxed {
     --tw-leading: var(--leading-relaxed);
     line-height: var(--leading-relaxed);
+  }
+  .font-bold {
+    --tw-font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-bold);
   }
   .font-medium {
     --tw-font-weight: var(--font-weight-medium);
@@ -1050,6 +1133,18 @@
   }
   .text-card-foreground {
     color: var(--card-foreground);
+  }
+  .text-current {
+    color: currentcolor;
+  }
+  .text-current\/80 {
+    color: currentcolor;
+    @supports (color: color-mix(in lab, red, red)) {
+      color: color-mix(in oklab, currentcolor 80%, transparent);
+    }
+  }
+  .text-gray-100 {
+    color: var(--color-gray-100);
   }
   .text-gray-300 {
     color: var(--color-gray-300);
@@ -1114,8 +1209,14 @@
   .text-white {
     color: var(--color-white);
   }
+  .uppercase {
+    text-transform: uppercase;
+  }
   .italic {
     font-style: italic;
+  }
+  .underline {
+    text-decoration-line: underline;
   }
   .underline-offset-4 {
     text-underline-offset: 4px;
@@ -1286,6 +1387,11 @@
       color: var(--muted-foreground);
     }
   }
+  .last\:mb-0 {
+    &:last-child {
+      margin-bottom: calc(var(--spacing) * 0);
+    }
+  }
   .focus-within\:border-blue-500 {
     &:focus-within {
       border-color: var(--color-blue-500);
@@ -1413,6 +1519,13 @@
     &:hover {
       @media (hover: hover) {
         color: var(--accent-foreground);
+      }
+    }
+  }
+  .hover\:text-blue-700 {
+    &:hover {
+      @media (hover: hover) {
+        color: var(--color-blue-700);
       }
     }
   }
@@ -1776,6 +1889,10 @@
 @layer base {
   * {
     border-color: var(--border);
+    outline-color: var(--ring);
+    @supports (color: color-mix(in lab, red, red)) {
+      outline-color: color-mix(in oklab, var(--ring) 50%, transparent);
+    }
   }
   body {
     background-color: var(--background);
@@ -1849,18 +1966,67 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.553 0.013 58.071);
 }
-@layer base {
-  * {
-    border-color: var(--border);
-    outline-color: var(--ring);
-    @supports (color: color-mix(in lab, red, red)) {
-      outline-color: color-mix(in oklab, var(--ring) 50%, transparent);
-    }
-  }
-  body {
-    background-color: var(--background);
-    color: var(--foreground);
-  }
+.markdown-content {
+  color: inherit;
+}
+.markdown-content pre {
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.markdown-content code {
+  font-family: 'Fira Code', 'Monaco', 'Cascadia Code', 'Ubuntu Mono', monospace;
+}
+.markdown-content pre code {
+  color: #e5e7eb;
+  background: #1f2937;
+}
+.markdown-content .token.comment,
+.markdown-content .token.prolog,
+.markdown-content .token.doctype,
+.markdown-content .token.cdata {
+  color: #6b7280;
+}
+.markdown-content .token.punctuation {
+  color: #d1d5db;
+}
+.markdown-content .token.property,
+.markdown-content .token.tag,
+.markdown-content .token.boolean,
+.markdown-content .token.number,
+.markdown-content .token.constant,
+.markdown-content .token.symbol,
+.markdown-content .token.deleted {
+  color: #f87171;
+}
+.markdown-content .token.selector,
+.markdown-content .token.attr-name,
+.markdown-content .token.string,
+.markdown-content .token.char,
+.markdown-content .token.builtin,
+.markdown-content .token.inserted {
+  color: #34d399;
+}
+.markdown-content .token.operator,
+.markdown-content .token.entity,
+.markdown-content .token.url,
+.markdown-content .language-css .token.string,
+.markdown-content .style .token.string {
+  color: #60a5fa;
+}
+.markdown-content .token.atrule,
+.markdown-content .token.attr-value,
+.markdown-content .token.keyword {
+  color: #a78bfa;
+}
+.markdown-content .token.function,
+.markdown-content .token.class-name {
+  color: #fbbf24;
+}
+.markdown-content .token.regex,
+.markdown-content .token.important,
+.markdown-content .token.variable {
+  color: #fb7185;
 }
 @property --tw-translate-x {
   syntax: "*";

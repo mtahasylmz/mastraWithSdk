@@ -23,7 +23,7 @@ interface UseMessageStreamReturn {
   isStreaming: boolean;
   streamingMessage: StreamingMessage | null;
   error: string | null;
-  sendMessage: (message: string, threadId: string, onComplete?: () => void) => Promise<void>;
+  sendMessage: (message: string, threadId: string, onComplete?: (assistantMessage: UIMessage) => void) => Promise<void>;
   clearStreamingMessage: () => void;
 }
 
@@ -37,88 +37,130 @@ export const useMessageStream = (): UseMessageStreamReturn => {
     setIsStreaming(false);
   }, []);
 
-  const sendMessage = useCallback(async (message: string, threadId: string, onComplete?: () => void) => {
+  const sendMessage = useCallback(async (message: string, threadId: string, onComplete?: (assistantMessage: UIMessage) => void) => {
     try {
       setError(null);
       setIsStreaming(true);
 
-      // Create initial assistant message for streaming
-      const assistantMessage: StreamingMessage = {
+      // 🔥 NEW: Track all collected content for final message
+      let finalContent = '';
+      let finalParts: MessagePart[] = [];
+      let finalReasoning = '';
+      let finalToolInvocations: any[] = [];
+
+      // 🔥 IMPROVED: Create a stable streaming message that we'll update
+      let currentStreamingMessage: StreamingMessage = {
         id: `streaming_${Date.now()}`,
         role: 'assistant',
         content: '',
         isStreaming: true,
-        parts: []
+        parts: [],
+        createdAt: new Date()
       };
       
-      setStreamingMessage(assistantMessage);
+      console.log('🚀 Starting stream, initial message:', currentStreamingMessage);
+      
+      // Set initial streaming message
+      setStreamingMessage(currentStreamingMessage);
 
       // Get agent instance and start streaming
       const agent = mastra_sdk.getAgent(MASTRA_CONFIG.agentId);
+      
+      console.log('📡 Starting agent stream...');
+      
       const response = await agent.stream({
         messages: [message],
         resourceId: MASTRA_CONFIG.resourceId,
         threadId: threadId
       });
 
+      console.log('📡 Stream response received, processing...');
+
       // Process the stream
       await response.processDataStream({
         onTextPart: (text: string) => {
-          setStreamingMessage(prev => {
-            if (!prev) return null;
-            return {
-              ...prev,
-              content: prev.content + text,
-              parts: [
-                ...(prev.parts || []),
-                { type: 'text', text }
-              ]
-            };
+          console.log('📝 Streaming text chunk:', text);
+          
+          finalContent += text;
+          const textPart = { type: 'text' as const, text };
+          finalParts.push(textPart);
+          
+          // 🔥 IMPROVED: Update both local reference and state
+          currentStreamingMessage = {
+            ...currentStreamingMessage,
+            content: currentStreamingMessage.content + text,
+            parts: [...(currentStreamingMessage.parts || []), textPart],
+          };
+          
+          console.log('📝 Updated streaming content:', {
+            contentLength: currentStreamingMessage.content.length,
+            recentContent: currentStreamingMessage.content.slice(-20),
+            isStreaming: currentStreamingMessage.isStreaming
           });
+          
+          // Update state with the new message
+          setStreamingMessage({ ...currentStreamingMessage });
         },
 
         onReasoningPart: (reasoning: string) => {
-          setStreamingMessage(prev => {
-            if (!prev) return null;
-            return {
-              ...prev,
-              parts: [
-                ...(prev.parts || []),
-                { type: 'reasoning', reasoning }
-              ]
-            };
-          });
+          console.log('💭 Streaming reasoning:', reasoning);
+          
+          finalReasoning = reasoning;
+          const reasoningPart = { type: 'reasoning' as const, reasoning };
+          finalParts.push(reasoningPart);
+          
+          currentStreamingMessage = {
+            ...currentStreamingMessage,
+            reasoning,
+            parts: [...(currentStreamingMessage.parts || []), reasoningPart]
+          };
+          
+          setStreamingMessage({ ...currentStreamingMessage });
         },
 
         onToolCallPart: (toolCall: any) => {
-          setStreamingMessage(prev => {
-            if (!prev) return null;
-            return {
-              ...prev,
-              parts: [
-                ...(prev.parts || []),
-                { type: 'tool-invocation', toolInvocation: toolCall }
-              ]
-            };
-          });
+          console.log('🔧 Streaming tool call:', toolCall);
+          
+          finalToolInvocations.push(toolCall);
+          const toolPart = { type: 'tool-invocation' as const, toolInvocation: toolCall };
+          finalParts.push(toolPart);
+          
+          currentStreamingMessage = {
+            ...currentStreamingMessage,
+            toolInvocations: [...(currentStreamingMessage.toolInvocations || []), toolCall],
+            parts: [...(currentStreamingMessage.parts || []), toolPart]
+          };
+          
+          setStreamingMessage({ ...currentStreamingMessage });
         },
 
         onFinishMessagePart: async (finishedMessage: any) => {
           console.log('🏁 Stream finished');
           
-          setStreamingMessage(prev => {
-            if (!prev) return null;
-            return {
-              ...prev,
-              isStreaming: false
-            };
-          });
+          // 🔥 IMPROVED: Mark current streaming message as complete
+          currentStreamingMessage = {
+            ...currentStreamingMessage,
+            isStreaming: false
+          };
+          
+          setStreamingMessage({ ...currentStreamingMessage });
           setIsStreaming(false);
           
-          // Call the completion callback if provided
+          // 🔥 NEW: Create final UIMessage from collected data
+          const finalAssistantMessage: UIMessage = {
+            id: `assistant_${Date.now()}_${Math.random().toString(36).substring(2)}`,
+            role: 'assistant',
+            content: finalContent,
+            createdAt: new Date(),
+            parts: finalParts.length > 0 ? finalParts : undefined,
+            reasoning: finalReasoning || undefined,
+            toolInvocations: finalToolInvocations.length > 0 ? finalToolInvocations : undefined,
+          };
+          
+          // 🔥 NEW: Call completion callback with the final assistant message
           if (onComplete) {
-            console.log('🔄 Calling completion callback...');
-            onComplete();
+            console.log('🔄 Calling completion callback with assistant message...');
+            onComplete(finalAssistantMessage);
           }
         },
 

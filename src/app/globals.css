@@ -29,7 +29,7 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
@@ -143,11 +143,81 @@
   --sidebar-ring: oklch(0.553 0.013 58.071);
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+/* Custom styles for markdown content */
+.markdown-content {
+  /* Ensure text color inheritance in chat bubbles */
+  color: inherit;
+}
+
+/* Improve code block styling */
+.markdown-content pre {
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.markdown-content code {
+  font-family: 'Fira Code', 'Monaco', 'Cascadia Code', 'Ubuntu Mono', monospace;
+}
+
+/* Custom syntax highlighting for dark code blocks */
+.markdown-content pre code {
+  color: #e5e7eb;
+  background: #1f2937;
+}
+
+/* Override PrismJS styles for better chat integration */
+.markdown-content .token.comment,
+.markdown-content .token.prolog,
+.markdown-content .token.doctype,
+.markdown-content .token.cdata {
+  color: #6b7280;
+}
+
+.markdown-content .token.punctuation {
+  color: #d1d5db;
+}
+
+.markdown-content .token.property,
+.markdown-content .token.tag,
+.markdown-content .token.boolean,
+.markdown-content .token.number,
+.markdown-content .token.constant,
+.markdown-content .token.symbol,
+.markdown-content .token.deleted {
+  color: #f87171;
+}
+
+.markdown-content .token.selector,
+.markdown-content .token.attr-name,
+.markdown-content .token.string,
+.markdown-content .token.char,
+.markdown-content .token.builtin,
+.markdown-content .token.inserted {
+  color: #34d399;
+}
+
+.markdown-content .token.operator,
+.markdown-content .token.entity,
+.markdown-content .token.url,
+.markdown-content .language-css .token.string,
+.markdown-content .style .token.string {
+  color: #60a5fa;
+}
+
+.markdown-content .token.atrule,
+.markdown-content .token.attr-value,
+.markdown-content .token.keyword {
+  color: #a78bfa;
+}
+
+.markdown-content .token.function,
+.markdown-content .token.class-name {
+  color: #fbbf24;
+}
+
+.markdown-content .token.regex,
+.markdown-content .token.important,
+.markdown-content .token.variable {
+  color: #fb7185;
 } 

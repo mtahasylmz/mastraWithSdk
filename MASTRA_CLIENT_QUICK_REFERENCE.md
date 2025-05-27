@@ -1,5 +1,21 @@
 # Mastra Client SDK - Quick Reference
 
+## 🔥 **KEY DISCOVERY: Auto-Thread Creation**
+
+**Mastra automatically creates threads when streaming to non-existent thread IDs!** This is the preferred method for creating new conversations.
+
+```typescript
+// ✅ RECOMMENDED: Auto-create via streaming
+const threadId = `thread_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+const agent = mastra_sdk.getAgent("articleAgent");
+
+const response = await agent.stream({
+  messages: ["Start new conversation"],
+  resourceId: "user-123", 
+  threadId: threadId  // Auto-creates thread with intelligent title
+});
+```
+
 ## Setup
 ```typescript
 import { MastraClient } from "@mastra/client-js";
@@ -20,7 +36,7 @@ const threads = await mastra_sdk.getMemoryThreads({
 });
 ```
 
-### 2. Create Thread
+### 2. Create Thread (Manual - Optional)
 ```typescript
 const thread = await mastra_sdk.createMemoryThread({
   threadId: `thread_${Date.now()}`,
@@ -29,6 +45,21 @@ const thread = await mastra_sdk.createMemoryThread({
   resourceId: "user-123",
   agentId: "articleAgent"
 });
+```
+
+### 2b. Create Thread (Auto via Streaming - ⭐ PREFERRED)
+```typescript
+// Generate unique ID and stream directly - thread auto-created!
+const threadId = `thread_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+const agent = mastra_sdk.getAgent("articleAgent");
+
+const response = await agent.stream({
+  messages: ["Hello! Let's start chatting."],
+  resourceId: "user-123",
+  threadId: threadId
+});
+
+// Thread created automatically with intelligent title based on content
 ```
 
 ### 3. Get Thread Object
@@ -193,6 +224,47 @@ const useThreads = (resourceId, agentId) => {
   return { threads, loading, fetchThreads };
 };
 ```
+
+## 🔥 **Auto-Thread Creation Pattern**
+
+**Recommended approach**: Skip manual thread creation and use streaming auto-creation:
+
+```typescript
+const useAutoThreadCreation = () => {
+  const [threads, setThreads] = useState([]);
+  
+  const startNewConversation = async (firstMessage: string) => {
+    // Generate unique thread ID
+    const threadId = `thread_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+    
+    // Stream to non-existent thread - Mastra auto-creates it
+    const agent = mastra_sdk.getAgent("articleAgent");
+    const response = await agent.stream({
+      messages: [firstMessage],
+      resourceId: "user-123",
+      threadId: threadId
+    });
+    
+    await response.processDataStream({
+      onFinishMessagePart: () => {
+        // Thread now exists with auto-generated title
+        refreshThreads(); // Update thread list
+      }
+    });
+    
+    return threadId;
+  };
+  
+  return { startNewConversation };
+};
+```
+
+**Why Auto-Creation is Better:**
+- ✅ **Intelligent titles** generated from message content
+- ✅ **Fewer API calls** (no separate creation request)
+- ✅ **Atomic operation** (creation + first message together)
+- ✅ **Less error handling** needed
+- ✅ **Simpler code** flow
 
 ## Stream Events Reference
 - `onTextPart`: Receive text chunks in real-time

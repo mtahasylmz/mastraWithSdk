@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { User, Bot, Loader2, Code, Lightbulb, Wrench } from "lucide-react";
@@ -10,14 +10,60 @@ interface ChatMessagesProps {
   isLoading?: boolean;
 }
 
-const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => {
+export interface ChatMessagesRef {
+  scrollToBottom: () => void;
+}
+
+const ChatMessages = forwardRef<ChatMessagesRef, ChatMessagesProps>(({ messages, isLoading }, ref) => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const scrollToBottom = () => {
+    console.log('📜 scrollToBottom called', {
+      hasScrollArea: !!scrollAreaRef.current,
+      scrollTop: scrollAreaRef.current?.scrollTop,
+      scrollHeight: scrollAreaRef.current?.scrollHeight,
+      clientHeight: scrollAreaRef.current?.clientHeight
+    });
+    
     if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+      // Try to find the actual scrollable viewport (RadixUI ScrollArea has a nested structure)
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      const targetElement = viewport || scrollAreaRef.current;
+      
+      console.log('📜 Target element:', {
+        isViewport: !!viewport,
+        scrollTop: targetElement.scrollTop,
+        scrollHeight: targetElement.scrollHeight
+      });
+      
+      targetElement.scrollTop = targetElement.scrollHeight;
+      
+      // Log after scroll attempt
+      setTimeout(() => {
+        console.log('📜 After scroll attempt:', {
+          scrollTop: targetElement.scrollTop,
+          scrollHeight: targetElement.scrollHeight
+        });
+      }, 10);
     }
-  }, [messages, isLoading]);
+  };
+
+  useImperativeHandle(ref, () => ({
+    scrollToBottom
+  }));
+
+  // Only scroll on initial load or when component first mounts
+  useEffect(() => {
+    if (scrollAreaRef.current && messages.length > 0) {
+      // Check if this is the first render with messages
+      const shouldScroll = messages.length === 1 || 
+        (messages.length > 1 && !messages.some(msg => (msg as any).isStreaming));
+      
+      if (shouldScroll) {
+        scrollToBottom();
+      }
+    }
+  }, [messages.length]); // Only depend on length, not content changes
 
   const formatTime = (date: Date | string | undefined) => {
     if (!date) return '';
@@ -282,6 +328,6 @@ const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => {
       </div>
     </ScrollArea>
   );
-};
+});
 
 export default ChatMessages;

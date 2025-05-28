@@ -1,16 +1,18 @@
-import { useState, useEffect } from "react";
-import ChatSidebar from "./ChatSidebar";
-import ChatMessages from "./ChatMessages";
-import ChatInput from "./ChatInput";
-import { Button } from "@/components/ui/button";
-import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { useEffect, useState, useRef } from "react";
 import { AlertCircle } from "lucide-react";
-import { useMessages, useMessageStream, UIMessage } from "@/hooks";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import ChatSidebar from "./ChatSidebar";
+import ChatMessages, { ChatMessagesRef } from "./ChatMessages";
+import ChatInput from "./ChatInput";
 import { useThreads } from "@/hooks/useThreads";
+import { useMessages } from "@/hooks/useMessages";
+import { useMessageStream, UIMessage } from "@/hooks";
+import { Button } from "@/components/ui/button";
 
 const ChatInterface = () => {
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [newlyCreatedThreads, setNewlyCreatedThreads] = useState<Set<string>>(new Set());
+  const chatMessagesRef = useRef<ChatMessagesRef>(null);
 
   const { messages, loading: messagesLoading, error: messagesError, fetchMessages, clearMessages, addMessage, appendStreamedMessage } = useMessages();
   const { isStreaming, streamingMessage, error: streamError, sendMessage, clearStreamingMessage } = useMessageStream();
@@ -68,6 +70,15 @@ const ChatInterface = () => {
 
     // Add user message immediately to messages state
     addMessage(userMessage);
+    
+    // Scroll to bottom after user message is added with increased delay
+    setTimeout(() => {
+      console.log('🔄 Attempting to scroll after user message...', {
+        hasRef: !!chatMessagesRef.current,
+        scrollFunction: typeof chatMessagesRef.current?.scrollToBottom
+      });
+      chatMessagesRef.current?.scrollToBottom();
+    }, 200); // Increased delay to ensure DOM update
 
     try {
       // 🔥 IMPROVED: Send message with streaming and use incremental updates
@@ -132,10 +143,25 @@ const ChatInterface = () => {
     streamingPartsCount: streamingMessage?.parts?.length || 0
   });
 
-  // 🔥 NEW: Force a key change when streaming to ensure re-renders
-  const chatMessagesKey = streamingMessage?.isStreaming 
-    ? `streaming-${streamingMessage.content?.length || 0}` 
-    : `static-${messages.length}`;
+  // Auto-scroll during streaming
+  useEffect(() => {
+    if (isStreaming && streamingMessage?.content) {
+      // Small delay to ensure content is rendered
+      setTimeout(() => {
+        chatMessagesRef.current?.scrollToBottom();
+      }, 50);
+    }
+  }, [isStreaming, streamingMessage?.content?.length]);
+
+  // Auto-scroll when streaming starts (when assistant message first appears)
+  useEffect(() => {
+    if (isStreaming && streamingMessage) {
+      // Scroll when streaming first starts
+      setTimeout(() => {
+        chatMessagesRef.current?.scrollToBottom();
+      }, 100);
+    }
+  }, [isStreaming, streamingMessage?.id]); // Trigger when streaming message ID changes (new message starts)
 
   return (
     <SidebarProvider>
@@ -195,7 +221,7 @@ const ChatInterface = () => {
                   </div>
                 ) : (
                   <ChatMessages 
-                    key={chatMessagesKey} // 🔥 NEW: Force re-render with streaming content changes
+                    ref={chatMessagesRef}
                     messages={allMessages} 
                     isLoading={isStreaming}
                   />

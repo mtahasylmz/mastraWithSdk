@@ -92,12 +92,9 @@ const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => {
                     <div className="flex items-center gap-2 mb-2">
                       <Wrench className="h-4 w-4 text-amber-600" />
                       <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
-                        Tool Used
+                        The {part.toolInvocation?.toolName || 'unknown'} tool is called
                       </span>
                     </div>
-                    <pre className="text-xs text-amber-800 dark:text-amber-200 overflow-x-auto bg-amber-100 dark:bg-amber-900/40 p-2 rounded">
-                      {JSON.stringify(part.toolInvocation, null, 2)}
-                    </pre>
                   </div>
                 );
               
@@ -135,6 +132,9 @@ const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => {
                 return (
                   <div key={index} className="mt-2 text-sm text-gray-500">
                     <strong>Unknown part type:</strong> {part.type}
+                    <pre className="text-xs mt-1 bg-gray-100 p-2 rounded">
+                      {JSON.stringify(part, null, 2)}
+                    </pre>
                   </div>
                 );
             }
@@ -201,8 +201,13 @@ const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => {
             {message.toolInvocations && message.toolInvocations.length > 0 && (!message.parts || message.parts.length === 0) && (
               <div className="mt-3 space-y-2">
                 {message.toolInvocations.map((tool, index) => (
-                  <div key={index} className="p-2 bg-amber-50 rounded text-xs">
-                    <strong>Tool:</strong> {JSON.stringify(tool)}
+                  <div key={index} className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border-l-4 border-amber-400">
+                    <div className="flex items-center gap-2">
+                      <Wrench className="h-4 w-4 text-amber-600" />
+                      <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                        The {tool.toolName || 'unknown'} tool is called
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>

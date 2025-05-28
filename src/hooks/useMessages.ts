@@ -37,6 +37,99 @@ interface UseMessagesReturn {
   updateLastMessage: (updater: (prev: UIMessage) => UIMessage) => void;
 }
 
+// 🔥 NEW: Function to merge tool invocations from empty messages into content messages
+const processMessagesForStreaming = (messages: UIMessage[]): UIMessage[] => {
+  if (!messages || messages.length === 0) return messages;
+  
+  console.log('🔧 Processing messages to merge tool invocations:', messages.length);
+  
+  const processed: UIMessage[] = [];
+  let i = 0;
+  
+  while (i < messages.length) {
+    const message = messages[i];
+    
+    // If it's not an assistant message, just add it
+    if (message.role !== 'assistant') {
+      processed.push(message);
+      i++;
+      continue;
+    }
+    
+    // If it's an assistant message with empty content but has tool invocations
+    if (message.role === 'assistant' && 
+        (!message.content || message.content.trim() === '') && 
+        message.toolInvocations && 
+        message.toolInvocations.length > 0) {
+      
+      console.log('🔧 Found empty assistant message with tool invocations:', message.toolInvocations);
+      
+      // Store the tool invocations and skip this message
+      const storedToolInvocations = message.toolInvocations;
+      i++; // Move to next message
+      
+      // Look for the next assistant message with content
+      while (i < messages.length) {
+        const nextMessage = messages[i];
+        
+        if (nextMessage.role === 'assistant' && nextMessage.content && nextMessage.content.trim() !== '') {
+          console.log('🔧 Found next assistant message with content, merging tool invocations');
+          
+          // Create parts array for the message
+          const parts: MessagePart[] = [];
+          
+          // Add tool invocation parts first (to show "tool called" before content)
+          storedToolInvocations.forEach(toolInvocation => {
+            parts.push({
+              type: 'tool-invocation',
+              toolInvocation: toolInvocation
+            });
+          });
+          
+          // Add the text content as a part
+          if (nextMessage.content) {
+            parts.push({
+              type: 'text',
+              text: nextMessage.content
+            });
+          }
+          
+          // Copy any existing parts
+          if (nextMessage.parts) {
+            parts.push(...nextMessage.parts);
+          }
+          
+          // Create the merged message
+          const mergedMessage: UIMessage = {
+            ...nextMessage,
+            parts: parts,
+            toolInvocations: [
+              ...(nextMessage.toolInvocations || []),
+              ...storedToolInvocations
+            ]
+          };
+          
+          processed.push(mergedMessage);
+          i++;
+          break;
+        } else {
+          // If we find another message that's not the content assistant message, 
+          // add it normally and continue looking
+          processed.push(nextMessage);
+          i++;
+        }
+      }
+    } else {
+      // Regular assistant message with content, add it normally
+      processed.push(message);
+      i++;
+    }
+  }
+  
+  console.log('🔧 Processed messages:', processed.length, 'from original:', messages.length);
+  return processed;
+};
+
 export const useMessages = (): UseMessagesReturn => {
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -76,7 +169,9 @@ export const useMessages = (): UseMessagesReturn => {
           const messagesResponse = await thread.getMessages();
           
           if (messagesResponse && (messagesResponse as any).uiMessages) {
-            setMessages((messagesResponse as any).uiMessages);
+            // 🔥 NEW: Process messages to merge tool invocations
+            const processedMessages = processMessagesForStreaming((messagesResponse as any).uiMessages);
+            setMessages(processedMessages);
             setLastFetchedThreadId(threadId);
           } else if (messagesResponse && (messagesResponse as any).messages) {
             const convertedMessages: UIMessage[] = (messagesResponse as any).messages.map((msg: any) => ({
@@ -88,7 +183,9 @@ export const useMessages = (): UseMessagesReturn => {
               toolInvocations: msg.toolInvocations || [],
               reasoning: msg.reasoning,
             }));
-            setMessages(convertedMessages);
+            // 🔥 NEW: Process converted messages too
+            const processedMessages = processMessagesForStreaming(convertedMessages);
+            setMessages(processedMessages);
             setLastFetchedThreadId(threadId);
           } else {
             setMessages([]);

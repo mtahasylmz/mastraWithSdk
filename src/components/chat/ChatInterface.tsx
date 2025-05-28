@@ -3,13 +3,13 @@ import ChatSidebar from "./ChatSidebar";
 import ChatMessages from "./ChatMessages";
 import ChatInput from "./ChatInput";
 import { Button } from "@/components/ui/button";
-import { Menu, AlertCircle } from "lucide-react";
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { AlertCircle } from "lucide-react";
 import { useMessages, useMessageStream, UIMessage } from "@/hooks";
 import { useThreads } from "@/hooks/useThreads";
 
 const ChatInterface = () => {
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [newlyCreatedThreads, setNewlyCreatedThreads] = useState<Set<string>>(new Set());
 
   const { messages, loading: messagesLoading, error: messagesError, fetchMessages, clearMessages, addMessage, appendStreamedMessage } = useMessages();
@@ -107,8 +107,10 @@ const ChatInterface = () => {
   };
 
   const getCurrentThreadTitle = () => {
-    // This could be enhanced to get thread details from the hook
-    return activeThreadId ? `Thread ${activeThreadId.slice(-8)}` : "Chat";
+    if (!activeThreadId) return "Chat";
+    
+    const currentThread = threads.find(thread => thread.id === activeThreadId);
+    return currentThread?.title || "Untitled Conversation";
   };
 
   // Combine regular messages with streaming message for display
@@ -136,9 +138,9 @@ const ChatInterface = () => {
     : `static-${messages.length}`;
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className={`${sidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden`}>
+    <SidebarProvider>
+      <div className="flex h-screen w-full bg-gray-50">
+        {/* Sidebar */}
         <ChatSidebar
           activeThreadId={activeThreadId}
           threads={threads}
@@ -149,99 +151,93 @@ const ChatInterface = () => {
           onDeleteThread={deleteThread}
           onRefresh={fetchThreads}
         />
-      </div>
 
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 p-4 flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-lg font-semibold text-gray-900">
-              {getCurrentThreadTitle()}
-            </h1>
-            {activeThreadId && (
-              <p className="text-sm text-gray-500">
-                Powered by Mastra AI • Article Research Agent
-                {isStreaming && " • Generating response..."}
-                {/* 🔥 NEW: Show streaming content length for debugging */}
-                {isStreaming && streamingMessage?.content && 
-                  ` • ${streamingMessage.content.length} chars`}
-              </p>
-            )}
-          </div>
-          
-          {(messagesError || streamError) && (
-            <div className="flex items-center gap-2 text-red-600">
-              <AlertCircle className="h-4 w-4" />
-              <span className="text-sm">
-                {messagesError || streamError}
-              </span>
+        {/* Main Chat Area */}
+        <SidebarInset className="flex-1 flex flex-col min-w-0">
+          {/* Header */}
+          <header className="bg-white border-b border-gray-200 p-4 flex items-center gap-4 min-h-16">
+            <SidebarTrigger />
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg font-semibold text-gray-900 truncate">
+                {getCurrentThreadTitle()}
+              </h1>
+              {activeThreadId && (
+                <p className="text-sm text-gray-500 truncate">
+                  Powered by Mastra AI & Upstash • Article Research Agent
+                  {isStreaming && " • Generating response..."}
+                  {/* 🔥 NEW: Show streaming content length for debugging */}
+                  {isStreaming && streamingMessage?.content && 
+                    ` • ${streamingMessage.content.length} chars`}
+                </p>
+              )}
             </div>
-          )}
-        </div>
+            
+            {(messagesError || streamError) && (
+              <div className="flex items-center gap-2 text-red-600 flex-shrink-0">
+                <AlertCircle className="h-4 w-4" />
+                <span className="text-sm">
+                  {messagesError || streamError}
+                </span>
+              </div>
+            )}
+          </header>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-hidden">
-          {activeThreadId ? (
-            <>
-              {messagesLoading && messages.length === 0 ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-500">Loading conversation...</p>
+          {/* Messages */}
+          <main className="flex-1 overflow-hidden">
+            {activeThreadId ? (
+              <>
+                {messagesLoading && messages.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                      <p className="text-gray-500">Loading conversation...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <ChatMessages 
+                    key={chatMessagesKey} // 🔥 NEW: Force re-render with streaming content changes
+                    messages={allMessages} 
+                    isLoading={isStreaming}
+                  />
+                )}
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-full p-8">
+                <div className="text-center max-w-md">
+                  <div className="text-6xl mb-4">💬</div>
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+                    Welcome to Mastra AI Chat
+                  </h2>
+                  <p className="text-gray-600 mb-6">
+                    Select an existing conversation or start a new one to begin chatting 
+                    with the AI research assistant.
+                  </p>
+                  <div className="text-sm text-gray-500">
+                    <p><strong>Features:</strong></p>
+                    <ul className="mt-2 space-y-1">
+                      <li>• Article research and summarization</li>
+                      <li>• Academic paper recommendations</li>
+                      <li>• Conversation memory and context</li>
+                      <li>• Tool-enhanced responses with real-time streaming</li>
+                    </ul>
                   </div>
                 </div>
-              ) : (
-                <ChatMessages 
-                  key={chatMessagesKey} // 🔥 NEW: Force re-render with streaming content changes
-                  messages={allMessages} 
-                  isLoading={isStreaming}
-                />
-              )}
-            </>
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="text-6xl mb-4">💬</div>
-                <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-                  Welcome to Mastra AI Chat
-                </h2>
-                <p className="text-gray-600 mb-6 max-w-md">
-                  Select an existing conversation or start a new one to begin chatting 
-                  with the AI research assistant.
-                </p>
-                <div className="text-sm text-gray-500">
-                  <p><strong>Features:</strong></p>
-                  <ul className="mt-2 space-y-1">
-                    <li>• Article research and summarization</li>
-                    <li>• Academic paper recommendations</li>
-                    <li>• Conversation memory and context</li>
-                    <li>• Tool-enhanced responses with real-time streaming</li>
-                  </ul>
-                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </main>
 
-        {/* Input */}
-        {activeThreadId && (
-          <div className="bg-white border-t border-gray-200 p-4">
-            <ChatInput 
-              onSendMessage={handleSendMessage} 
-              disabled={isStreaming} 
-            />
-          </div>
-        )}
+          {/* Input */}
+          {activeThreadId && (
+            <footer className="bg-white border-t border-gray-200 p-4">
+              <ChatInput 
+                onSendMessage={handleSendMessage} 
+                disabled={isStreaming} 
+              />
+            </footer>
+          )}
+        </SidebarInset>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 

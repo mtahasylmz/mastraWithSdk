@@ -88,10 +88,10 @@ const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => {
               
               case 'tool-invocation':
                 return (
-                  <div key={index} className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border-l-4 border-amber-400">
+                  <div key={index} className="mt-3 p-3 bg-emerald-50 rounded-lg border-l-4 border-emerald-500">
                     <div className="flex items-center gap-2 mb-2">
-                      <Wrench className="h-4 w-4 text-amber-600" />
-                      <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                      <Wrench className="h-4 w-4 text-emerald-700" />
+                      <span className="text-sm font-medium text-emerald-700">
                         The {part.toolInvocation?.toolName || 'unknown'} tool is called
                       </span>
                     </div>
@@ -100,14 +100,14 @@ const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => {
               
               case 'source':
                 return (
-                  <div key={index} className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border-l-4 border-green-400">
+                  <div key={index} className="mt-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-l-4 border-emerald-400">
                     <div className="flex items-center gap-2 mb-2">
-                      <Code className="h-4 w-4 text-green-600" />
-                      <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                      <Code className="h-4 w-4 text-emerald-600" />
+                      <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
                         Source
                       </span>
                     </div>
-                    <pre className="text-xs text-green-800 dark:text-green-200 overflow-x-auto bg-green-100 dark:bg-green-900/40 p-2 rounded">
+                    <pre className="text-xs text-emerald-800 dark:text-emerald-200 overflow-x-auto bg-emerald-100 dark:bg-emerald-900/40 p-2 rounded">
                       {JSON.stringify(part.source, null, 2)}
                     </pre>
                   </div>
@@ -162,14 +162,14 @@ const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => {
         }`}
       >
         {!isUser && (
-          <Avatar className="w-8 h-8 flex-shrink-0">
-            <AvatarFallback className={isSystem ? "bg-gray-100" : "bg-blue-100"}>
+          <Avatar className="w-8 h-8 flex-shrink-0 ">
+            <AvatarFallback className={isSystem ? "bg-gray-100" : "bg-emerald-100"}>
               {isSystem ? (
                 <Code className="h-4 w-4 text-gray-600" />
               ) : isStreaming ? (
                 <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
               ) : (
-                <Bot className="h-4 w-4 text-blue-600" />
+                <Bot className="h-4 w-4 text-emerald-600 " />
               )}
             </AvatarFallback>
           </Avatar>
@@ -179,11 +179,12 @@ const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => {
           <div
             className={`rounded-2xl px-4 py-3 ${
               isUser
-                ? "bg-blue-600 text-white"
+                ? "text-black"
                 : isSystem
                 ? "bg-gray-100 border border-gray-200 text-gray-700"
                 : "bg-white border border-gray-200 text-gray-900"
             }`}
+            style={isUser ? { backgroundColor: '#E4E3E7' } : {}}
           >
             <div className="text-sm leading-relaxed">
               {renderMessageContent(message)}
@@ -201,10 +202,10 @@ const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => {
             {message.toolInvocations && message.toolInvocations.length > 0 && (!message.parts || message.parts.length === 0) && (
               <div className="mt-3 space-y-2">
                 {message.toolInvocations.map((tool, index) => (
-                  <div key={index} className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border-l-4 border-amber-400">
+                  <div key={index} className="p-3 bg-emerald-50 rounded-lg border-l-4 border-emerald-500">
                     <div className="flex items-center gap-2">
-                      <Wrench className="h-4 w-4 text-amber-600" />
-                      <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                      <Wrench className="h-4 w-4 text-emerald-700" />
+                      <span className="text-sm font-medium text-emerald-700">
                         The {tool.toolName || 'unknown'} tool is called
                       </span>
                     </div>
@@ -242,7 +243,11 @@ const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => {
   const hasStreamingMessage = messages.some(msg => (msg as any).isStreaming);
 
   return (
-    <ScrollArea className="h-full p-4" ref={scrollAreaRef}>
+    <ScrollArea 
+      className="h-full p-4" 
+      ref={scrollAreaRef}
+      style={{ backgroundColor: 'rgba(228, 227, 231, 0.25)' }}
+    >
       <div className="space-y-6 max-w-4xl mx-auto">
         {messages.length === 0 ? (
           <div className="text-center py-12">

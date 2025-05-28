@@ -1,6 +1,7 @@
 output.txt
 node_modules
 dist
+.next
 .env.local
 .mastra
 .env.development

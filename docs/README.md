@@ -47,31 +47,7 @@ services/
 
 If you prefer manual control or need to re-initialize:
 
-### 🔧 **Option 1: Via API Routes**
-
-```bash
-# RECOMMENDED FOR FIRST TIME: Beginning stack + scheduler
-curl -X POST http://localhost:3000/api/init?beginning-stack=true
-
-# Development: Yesterday papers + scheduler  
-curl -X POST http://localhost:3000/api/init?immediate=true
-
-# Production restart: Scheduler only
-curl -X POST http://localhost:3000/api/init
-```
-
-### 💻 **Option 2: Standalone Script**
-
-```bash
-node scripts/start-services.js
-```
-
-This will:
-- Fetch beginning stack (1000 papers)
-- Start daily renewal at 6 AM UTC  
-- Keep running until you stop it (Ctrl+C)
-
-### 📅 **Option 3: Direct Function Calls**
+### 📅 **Option 1: Direct Function Calls**
 
 ```typescript
 import { 
@@ -90,16 +66,13 @@ await initializeServicesWithImmediateRun();
 initializeServices();
 ```
 
-### ⏰ **Option 4: External Cron Jobs**
+### ⏰ **Option 2: External Cron Jobs**
 
-Set up system cron job:
+Set up system cron job to call your application functions:
 
 ```bash
-# Yesterday papers (fetches ALL papers for that date)
-0 6 * * * curl -X POST http://localhost:3000/api/services/arxiv/renewal?type=yesterday
-
-# Or beginning stack
-0 6 * * * curl -X POST http://localhost:3000/api/services/arxiv/renewal?type=beginning-stack
+# Create a script that calls your renewal functions
+# 0 6 * * * node /path/to/your/renewal-script.js
 ```
 
 ## How It Works
@@ -113,13 +86,6 @@ Set up system cron job:
 4. **If regular restart**:
    - Starts scheduler only
 5. **Daily at 6 AM UTC**: Fetches ALL yesterday's papers
-
-### **Manual Triggers Flow:**
-```bash
-# Trigger specific renewals anytime
-curl -X POST http://localhost:3000/api/services/arxiv/renewal?type=yesterday
-curl -X POST http://localhost:3000/api/services/arxiv/renewal?type=beginning-stack
-```
 
 ## Renewal Modes
 
@@ -151,15 +117,6 @@ This means you can:
 - Keep your vector database clean
 
 ## Monitoring
-
-### **Check Status:**
-```bash
-# Check if services are initialized
-curl http://localhost:3000/api/init
-
-# Manual renewal status  
-curl http://localhost:3000/api/services/arxiv/renewal
-```
 
 ### **Logs:**
 The system provides detailed console logging:

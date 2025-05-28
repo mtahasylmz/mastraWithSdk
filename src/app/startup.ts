@@ -42,7 +42,7 @@ export async function startupServices() {
   } catch (error) {
     console.error('❌ Error during automatic service initialization:', error);
     // Don't crash the app, just log the error
-    console.log('⚠️ Continuing without automatic initialization. Use /api/init to initialize manually.');
+    console.log('⚠️ Continuing without automatic initialization. Check your environment variables and restart the application.');
   }
 }
 

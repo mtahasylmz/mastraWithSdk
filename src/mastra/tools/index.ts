@@ -2,8 +2,17 @@ import { embed } from 'ai';
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import { createTool } from '@mastra/core/tools';
-import { vectorStore } from './renewal';
-import { ArxivPaper } from './arxiv_scraper';
+import { myMastraUpstashVector } from '../agents/memory';
+
+export interface ArxivPaper {
+  id: string;
+  title: string;
+  abstract: string;
+  authors: string[];
+  published: string;
+  pdfUrl: string;
+  category: string;
+}
 
 const querySimilar = async (query: string) => {
   // Generate embedding for query
@@ -13,8 +22,8 @@ const querySimilar = async (query: string) => {
   });
   
   
-  const results = await vectorStore.query({
-    indexName: "ai-arxiv",
+  const results = await myMastraUpstashVector.query({
+    indexName: "arxiv",
     queryVector: embedding,
     topK: 3,
   });

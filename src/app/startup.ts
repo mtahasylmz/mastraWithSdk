@@ -4,17 +4,13 @@ import { initializeServicesWithBeginningStack } from '../services/init';
 if (typeof window === 'undefined') {
   try {
     require('dotenv').config({ path: '.env.local' });
-    require('dotenv').config({ path: '.env.development' });
     require('dotenv').config({ path: '.env' });
   } catch (error) {
     // dotenv might not be available in production, that's ok
   }
 }
 
-/**
- * Automatic service startup
- * This will run when the application starts
- */
+
 export async function startupServices() {
   try {
     console.log('🚀 Starting automatic service initialization...');
@@ -47,7 +43,7 @@ export async function startupServices() {
 }
 
 // Auto-run on import - trigger in both development and production
-if (typeof window === 'undefined') { // Only run on server-side
+if (typeof window === 'undefined') { 
   console.log('🔧 Server-side startup detected, initializing services...');
   
   // Use setImmediate to run after current execution cycle

@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 const categories = process.env.CATEGORIES?.split(',') || []; //https://arxiv.org/category_taxonomy
 const maxResultsPerCall = 2000; // Maximum per API call as per arXiv API limits
-const beginStack = 1000;
+const beginStack = 30000;
 
 export interface ArxivPaper {
   id: string;
@@ -143,31 +143,36 @@ export async function beginningStackArxivPapers(): Promise<ArxivPaper[]> {
     }
     const searchQuery = categories.length === 1 ? `cat:${categories[0]}` : `(${categories.map(c => `cat:${c}`).join(" OR ")})`;
 
-    const query = `search_query=${searchQuery}&sortBy=submittedDate&sortOrder=descending&max_results=${beginStack}`;
+    const papers: ArxivPaper[] = [];
 
-    console.log(`Fetching beginning stack: ${beginStack} papers...`);
+    for (let i = 0; i < beginStack; i += maxResultsPerCall) {
+        const query = `search_query=${searchQuery}&sortBy=submittedDate&sortOrder=descending&start=${i}&max_results=${maxResultsPerCall}`;
+        console.log(`Fetching beginning stack: ${i} to ${i + maxResultsPerCall} papers...`);
 
-    const url = `http://export.arxiv.org/api/query?${query}`;
+        const url = `http://export.arxiv.org/api/query?${query}`;
 
-    const response = await axios.get(url);
-    const parsed = await parseStringPromise(response.data);
+        const response = await axios.get(url);
+        const parsed = await parseStringPromise(response.data);
 
-    const entries = parsed.feed.entry;
-    if (!entries) return [];
+        const entries = parsed.feed.entry;
+        if (!entries) continue;
+        
+
+        const normalizedEntries = Array.isArray(entries) ? entries : [entries];
+
+        const tempPapers = normalizedEntries.map((entry: any): ArxivPaper => ({
+            id: entry.id[0],
+            title: entry.title[0],
+            abstract: entry.summary[0],
+            authors: entry.author.map((author: any) => author.name[0]),
+            published: entry.published[0],
+            pdfUrl: entry.link.find((link: any) => link.$.title === "pdf").$.href,
+            category: entry.category[0].$.term,
+        }));
+
+        console.log(`Beginning stack fetched: ${tempPapers.length} papers`);
+        papers.push(...tempPapers);
+    }
     
-
-    const normalizedEntries = Array.isArray(entries) ? entries : [entries];
-
-    const papers = normalizedEntries.map((entry: any): ArxivPaper => ({
-        id: entry.id[0],
-        title: entry.title[0],
-        abstract: entry.summary[0],
-        authors: entry.author.map((author: any) => author.name[0]),
-        published: entry.published[0],
-        pdfUrl: entry.link.find((link: any) => link.$.title === "pdf").$.href,
-        category: entry.category[0].$.term,
-    }));
-
-    console.log(`Beginning stack fetched: ${papers.length} papers`);
     return papers;
 } 

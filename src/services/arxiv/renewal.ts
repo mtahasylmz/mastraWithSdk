@@ -1,6 +1,7 @@
 import { Index } from '@upstash/vector';
-import { ArxivPaper, fetchLatestArxivPapers, beginningStackArxivPapers } from "./scraper";
+import { ArxivPaper, fetchLatestArxivPapers, beginningStackArxivPapers} from "./scraper";
 import { openai } from "@ai-sdk/openai";
+import { embedMany } from 'ai'
 import 'dotenv/config';
 
 
@@ -16,28 +17,40 @@ const getId = (paper: ArxivPaper) => {
 
 // Function to check if papers already exist in the vector database
 async function filterExistingPapers(papers: ArxivPaper[]): Promise<ArxivPaper[]> {
-    const newPapers: ArxivPaper[] = [];
     
-    console.log(`Checking ${papers.length} papers for existing entries...`);
+    let paperLength = papers.length;
+    console.log(`Checking ${paperLength} papers for existing entries...`);
+
+    let paperIds: string[] = [];
+    papers.forEach(paper =>
+        paperIds.push(paper.id)
+    )
     
-    for (const paper of papers) {
-        try {
-            // Try to fetch the paper by ID to see if it exists
-            const existingPaper = await vectorStore.fetch([paper.id], { namespace: "arxiv" });
-            
-            // Check if paper actually exists - handle [null] case from Upstash
-            if (!existingPaper || existingPaper.length === 0 || existingPaper[0] === null) {
-                // Paper doesn't exist, add it to new papers list
-                newPapers.push(paper);
-            } else {
-                console.log(`Paper ${paper.id} already exists, skipping...`);
-            }
-        } catch (error) {
-            // If fetch fails, assume paper doesn't exist and include it
-            console.log(`Could not check existence for ${paper.id}, including it: ${error}`);
-            newPapers.push(paper);
+    // pagination with 1000
+    let i = Math.ceil(paperLength / 1000);
+    let existingPapers: any[] = [];
+
+    for (let j = 0; j < i; j++) {
+        let start = j * 1000;
+        let end = start + 1000;
+        let tempPapers = await vectorStore.fetch(paperIds.slice(start, end), { includeMetadata: false, includeData: false, namespace: "arxiv" });
+        if (tempPapers !== null) {
+            existingPapers.push(...tempPapers);
         }
     }
+    existingPapers = existingPapers.filter(paper => paper !== null);
+    if (existingPapers.length === 0) {
+        console.log("No existing papers found, returning all papers");
+        return papers;
+    }
+    console.log(`Existing papers: ${existingPapers.length}`);
+
+    let existingPaperIds: string[] = [];
+    existingPapers.forEach(paper => {
+        existingPaperIds.push(paper.id.toString())
+    })
+    let newPapers : ArxivPaper[] = papers.filter(paper => !existingPaperIds.includes(paper.id))
+    
     
     console.log(`Found ${newPapers.length} new papers out of ${papers.length} total`);
     return newPapers;
@@ -53,22 +66,35 @@ async function storeAbstracts(papers: ArxivPaper[]) {
         return;
     }
 
-    //Generate embeddings for all new abstracts using OpenAI directly
-    const embeddings = [];
-    const embeddingModel = openai.embedding("text-embedding-3-small");
+    // //Generate embeddings for all new abstracts using OpenAI directly
+    // const embeddings = [];
+     const embeddingModel = openai.embedding("text-embedding-3-small");
     
-    console.log(`Generating embeddings for ${newPapers.length} new papers...`);
+    // console.log(`Generating embeddings for ${newPapers.length} new papers...`);
     
-    for (const paper of newPapers) {
-        try {
-            const result = await embeddingModel.doEmbed({ values: [paper.abstract] });
-            embeddings.push(result.embeddings[0]);
-        } catch (error) {
-            console.error(`Error generating embedding for paper ${paper.id}:`, error);
-            // Skip this paper if embedding fails
-            continue;
-        }
+    // for (const paper of newPapers) {
+    //     try {
+    //         const result = await embeddingModel.doEmbed({ values: [paper.abstract] });
+    //         embeddings.push(result.embeddings[0]);
+    //     } catch (error) {
+    //         console.error(`Error generating embedding for paper ${paper.id}:`, error);
+    //         // Skip this paper if embedding fails
+    //         continue;
+    //     }
+    // }
+
+    let embeddings : any[] = [];
+    let i = Math.ceil(newPapers.length / 500);
+    for (let j = 0; j < i; j++) {
+        let start = j * 500;
+        let end = start + 500;
+        let tempResult = await embedMany({
+            model: embeddingModel,
+            values: newPapers.slice(start, end).map(paper => paper.abstract)
+        })
+        embeddings.push(...tempResult.embeddings);
     }
+    
 
     if (embeddings.length === 0) {
         console.log("No embeddings generated, skipping upsert");
@@ -93,7 +119,13 @@ async function storeAbstracts(papers: ArxivPaper[]) {
     });
 
     // Store in vector DB using Upstash native format
-    await vectorStore.upsert(vectorsToUpsert, { namespace: "arxiv" });
+    // pagination with 1000
+    i = Math.ceil(vectorsToUpsert.length / 1000);
+    for (let j = 0; j < i; j++) {
+        let start = j * 1000;
+        let end = start + 1000;
+        await vectorStore.upsert(vectorsToUpsert.slice(start, end), { namespace: "arxiv" });
+    }
     
     console.log(`Successfully stored ${vectorsToUpsert.length} new papers in vector database`);
 
@@ -112,3 +144,4 @@ export async function fetchBeginningStack() : Promise<void> {
     await storeAbstracts(papers);
     console.log(`Processed ${papers.length} papers for beginning stack.`);
 } 
+

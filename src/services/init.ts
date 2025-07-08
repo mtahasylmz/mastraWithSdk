@@ -1,5 +1,5 @@
 import { arxivScheduler } from './scheduler';
-import { fetchBeginningStack } from './arxiv';
+import { fetchBeginningStack} from './arxiv';
 
 let isInitialized = false;
 
@@ -39,7 +39,8 @@ export async function initializeServicesWithBeginningStack() {
     console.log('Fetching beginning stack (this may take a few minutes)...');
     await fetchBeginningStack();
     console.log('Beginning stack fetch completed successfully');
-    
+   
+
     // 2. Then start daily renewal schedule
     console.log('Starting daily renewal scheduler...');
     arxivScheduler.startDailyRenewal(6);

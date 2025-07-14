@@ -87,12 +87,12 @@ const processMessagesForStreaming = (messages: UIMessage[]): UIMessage[] => {
           });
           
           // Add the text content as a part
-          if (nextMessage.content) {
-            parts.push({
-              type: 'text',
-              text: nextMessage.content
-            });
-          }
+          // if (nextMessage.content) {
+          //   parts.push({
+          //     type: 'text',
+          //     text: nextMessage.content + "this was the text part  "
+          //   });
+          // }
           
           // Copy any existing parts
           if (nextMessage.parts) {

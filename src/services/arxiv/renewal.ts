@@ -117,17 +117,17 @@ async function storeAbstracts(papers: ArxivPaper[]) {
             }
         };
     });
-
+    let errorCount = 0;
     // Store in vector DB using Upstash native format
-    // pagination with 1000
-    i = Math.ceil(vectorsToUpsert.length / 1000);
-    for (let j = 0; j < i; j++) {
-        let start = j * 1000;
-        let end = start + 1000;
-        await vectorStore.upsert(vectorsToUpsert.slice(start, end), { namespace: "arxiv" });
-    }
-    
-    console.log(`Successfully stored ${vectorsToUpsert.length} new papers in vector database`);
+    for (let j = 0; j < vectorsToUpsert.length; j++) {        
+        try {
+            await vectorStore.upsert(vectorsToUpsert[j], { namespace: "arxiv" });
+        } catch (error) {
+            errorCount++;
+        }
+    }   
+    console.log(`Successfully stored ${vectorsToUpsert.length - errorCount} new papers in vector database`);
+    console.log(`Failed to store ${errorCount} papers`);
 
 }
 

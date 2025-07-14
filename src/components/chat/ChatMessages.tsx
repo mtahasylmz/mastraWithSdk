@@ -111,26 +111,12 @@ const ChatMessages = forwardRef<ChatMessagesRef, ChatMessagesProps>(({ messages,
             <MarkdownRenderer 
               content={textParts.map(part => part.text).join('')}
             />
+
           )}
           
           {/* Render non-text parts with their special formatting */}
           {nonTextParts.map((part, index) => {
             switch (part.type) {
-              case 'reasoning':
-                return (
-                  <div key={index} className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-400">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Lightbulb className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                        Reasoning
-                      </span>
-                    </div>
-                    <MarkdownRenderer 
-                      content={part.reasoning || ''} 
-                      className="text-sm text-blue-800 dark:text-blue-200 italic"
-                    />
-                  </div>
-                );
               
               case 'tool-invocation':
                 return (
@@ -144,45 +130,6 @@ const ChatMessages = forwardRef<ChatMessagesRef, ChatMessagesProps>(({ messages,
                   </div>
                 );
               
-              case 'source':
-                return (
-                  <div key={index} className="mt-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-l-4 border-emerald-400">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Code className="h-4 w-4 text-emerald-600" />
-                      <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                        Source
-                      </span>
-                    </div>
-                    <pre className="text-xs text-emerald-800 dark:text-emerald-200 overflow-x-auto bg-emerald-100 dark:bg-emerald-900/40 p-2 rounded">
-                      {JSON.stringify(part.source, null, 2)}
-                    </pre>
-                  </div>
-                );
-              
-              case 'file':
-                return (
-                  <div key={index} className="mt-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border-l-4 border-purple-400">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Code className="h-4 w-4 text-purple-600" />
-                      <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
-                        File ({part.mimeType})
-                      </span>
-                    </div>
-                    <div className="text-xs text-purple-800 dark:text-purple-200">
-                      {part.data ? 'File data available' : 'No file data'}
-                    </div>
-                  </div>
-                );
-              
-              default:
-                return (
-                  <div key={index} className="mt-2 text-sm text-gray-500">
-                    <strong>Unknown part type:</strong> {part.type}
-                    <pre className="text-xs mt-1 bg-gray-100 p-2 rounded">
-                      {JSON.stringify(part, null, 2)}
-                    </pre>
-                  </div>
-                );
             }
           })}
         </>
@@ -198,7 +145,7 @@ const ChatMessages = forwardRef<ChatMessagesRef, ChatMessagesProps>(({ messages,
   const renderMessage = (message: UIMessage) => {
     const isUser = message.role === 'user';
     const isSystem = message.role === 'system';
-    const isStreaming = (message as any).isStreaming; // Check if message is streaming
+    const isStreaming = (message as any).isStreaming;
     
     return (
       <div
@@ -258,7 +205,7 @@ const ChatMessages = forwardRef<ChatMessagesRef, ChatMessagesProps>(({ messages,
                   </div>
                 ))}
               </div>
-            )}
+            )} 
           </div>
           
           <div className={`flex items-center gap-2 mt-1 text-xs text-gray-500 ${

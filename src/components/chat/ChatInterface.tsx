@@ -107,7 +107,7 @@ const ChatInterface = () => {
               updated.delete(activeThreadId);
               return updated;
             });
-          }, 1000);
+          }, 1500);
         }
         
         console.log('✅ Incremental message update completed - no full refetch!');

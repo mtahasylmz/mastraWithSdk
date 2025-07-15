@@ -43,25 +43,19 @@ const ChatSidebar = ({
   onDeleteThread,
   onRefresh
 }: ChatSidebarProps) => {
-  // Debug logging for threads changes
   useEffect(() => {
-    console.log('🎨 ChatSidebar: threads updated, count:', threads.length);
-    console.log('🎨 ChatSidebar: threads data:', threads.map(t => ({ id: t.id, title: t.title })));
+    
   }, [threads]);
 
-  // 🔥 IMPROVED: Let parent handle thread generation for better state management
   const handleNewThread = () => {
-    console.log('🎯 ChatSidebar: handleNewThread called - delegating to parent');
-    // Parent will generate thread ID and manage state
     onNewThread();
   };
 
   const handleDeleteThread = async (threadId: string, event: React.MouseEvent) => {
-    event.stopPropagation(); // Prevent thread selection
+    event.stopPropagation();
     if (confirm('Are you sure you want to delete this conversation?')) {
       const success = await onDeleteThread(threadId);
       if (success && activeThreadId === threadId) {
-        // If deleted thread was active, clear selection
         onThreadSelect('');
       }
     }
@@ -79,7 +73,6 @@ const ChatSidebar = ({
 
   return (
     <Sidebar className="border-r border-gray-200 bg-gray-50">
-      {/* Header */}
       <SidebarHeader className="p-4 border-b border-gray-200 bg-gray-50">
         <Button
           onClick={handleNewThread}
@@ -91,9 +84,7 @@ const ChatSidebar = ({
         </Button>
       </SidebarHeader>
 
-      {/* Content */}
       <SidebarContent className="px-2 bg-gray-50">
-        {/* Error Display */}
         {error && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg m-2">
             <div className="flex items-center gap-2 text-red-700">
@@ -111,7 +102,6 @@ const ChatSidebar = ({
           </div>
         )}
 
-        {/* Threads List */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-gray-600 font-medium">
             Conversations
@@ -180,7 +170,6 @@ const ChatSidebar = ({
                         </div>
                       </SidebarMenuButton>
                       
-                      {/* Delete button - shows on hover */}
                       <button
                         onClick={(e) => handleDeleteThread(thread.id, e)}
                         className={`absolute top-2 right-3 p-1.5 rounded opacity-20 group-hover:opacity-100 transition-opacity ${
@@ -205,7 +194,6 @@ const ChatSidebar = ({
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Footer */}
       <SidebarFooter className="p-4 border-t border-gray-200 bg-gray-50">
         <p className="text-xs text-gray-500">
           Powered by Mastra AI • Upstash • {threads.length} conversation{threads.length !== 1 ? 's' : ''}

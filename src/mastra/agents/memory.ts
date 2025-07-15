@@ -4,7 +4,6 @@ import { Memory } from '@mastra/memory';
 import { openai } from '@ai-sdk/openai';
 
 
-
 export const myMastraUpstashVector = new UpstashVector({
     url: process.env.UPSTASH_VECTOR_REST_URL!,
     token: process.env.UPSTASH_VECTOR_TOKEN!,

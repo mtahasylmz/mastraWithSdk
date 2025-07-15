@@ -15,7 +15,6 @@ const MarkdownRenderer = ({ content, className = '' }: MarkdownRendererProps) =>
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}
         components={{
-          // Headings
           h1: ({ children }) => (
             <h1 className="text-lg font-bold mb-2 text-current border-b border-gray-300 pb-1">
               {children}
@@ -37,14 +36,12 @@ const MarkdownRenderer = ({ content, className = '' }: MarkdownRendererProps) =>
             </h4>
           ),
           
-          // Paragraphs - smaller margins for chat bubbles
           p: ({ children }) => (
             <p className="mb-2 last:mb-0 leading-relaxed">
               {children}
             </p>
           ),
           
-          // Lists
           ul: ({ children }) => (
             <ul className="list-disc list-inside mb-2 space-y-0.5 pl-2">
               {children}
@@ -61,7 +58,6 @@ const MarkdownRenderer = ({ content, className = '' }: MarkdownRendererProps) =>
             </li>
           ),
           
-          // Code - improved for chat context
           code: ({ inline, className, children, ...props }: any) => {
             if (inline) {
               return (
@@ -90,7 +86,6 @@ const MarkdownRenderer = ({ content, className = '' }: MarkdownRendererProps) =>
             </pre>
           ),
           
-          // Links
           a: ({ href, children }) => (
             <a 
               href={href}
@@ -102,28 +97,24 @@ const MarkdownRenderer = ({ content, className = '' }: MarkdownRendererProps) =>
             </a>
           ),
           
-          // Strong/Bold
           strong: ({ children }) => (
             <strong className="font-semibold text-current">
               {children}
             </strong>
           ),
           
-          // Emphasis/Italic
           em: ({ children }) => (
             <em className="italic text-current">
               {children}
             </em>
           ),
           
-          // Blockquotes
           blockquote: ({ children }) => (
             <blockquote className="border-l-3 border-gray-400 pl-3 py-1 my-2 italic text-current/80 bg-black/5 rounded-r">
               {children}
             </blockquote>
           ),
           
-          // Tables
           table: ({ children }) => (
             <div className="overflow-x-auto my-2">
               <table className="min-w-full border border-gray-300 rounded text-sm">
@@ -157,7 +148,6 @@ const MarkdownRenderer = ({ content, className = '' }: MarkdownRendererProps) =>
             </td>
           ),
           
-          // Horizontal Rule
           hr: () => (
             <hr className="my-3 border-gray-300" />
           ),

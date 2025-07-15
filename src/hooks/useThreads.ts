@@ -32,13 +32,11 @@ export const useThreads = (): UseThreadsReturn => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
-      console.error('API call failed:', err);
       return null;
     }
   };
 
   const fetchThreads = useCallback(async () => {
-    console.log('🔄 fetchThreads: Starting to fetch threads from server...');
     setLoading(true);
     try {
       const result = await safeApiCall(() => 
@@ -48,34 +46,21 @@ export const useThreads = (): UseThreadsReturn => {
         })
       );
       
-      console.log('📦 fetchThreads: Raw result from getMemoryThreads:', result);
-      console.log('📦 fetchThreads: Result type:', typeof result, 'isArray:', Array.isArray(result));
-      
       if (result && Array.isArray(result)) {
-        // Sort threads by updatedAt in descending order (newest first)
         const sortedThreads = result.sort((a: Thread, b: Thread) => {
           const aUpdated = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
           const bUpdated = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
           return bUpdated - aUpdated;
         });
         
-        console.log('✅ fetchThreads: Setting sorted threads, count:', sortedThreads.length);
-        console.log('📋 fetchThreads: Thread IDs (sorted by updatedAt):', sortedThreads.map(t => ({ 
-          id: t.id, 
-          title: t.title, 
-          updatedAt: t.updatedAt 
-        })));
         setThreads(sortedThreads);
       } else {
-        console.log('⚠️ fetchThreads: No valid array result, setting empty array');
         setThreads([]);
       }
     } catch (err) {
-      console.error('❌ fetchThreads: Error fetching threads:', err);
       setThreads([]);
     } finally {
       setLoading(false);
-      console.log('🏁 fetchThreads: Completed');
     }
   }, []);
 
@@ -85,7 +70,6 @@ export const useThreads = (): UseThreadsReturn => {
       : `${Date.now()}_${Math.random().toString(36).substring(2)}`;
     
     const threadId = `thread_${uniquePart}`;
-    console.log('🆔 Generated new thread ID for auto-creation:', threadId);
     return threadId;
   }, []);
 
@@ -98,7 +82,6 @@ export const useThreads = (): UseThreadsReturn => {
         return true;
       }
     } catch (err) {
-      console.error('Error deleting thread:', err);
       setError('Failed to delete thread');
     }
     return false;

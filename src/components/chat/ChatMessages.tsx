@@ -18,32 +18,15 @@ const ChatMessages = forwardRef<ChatMessagesRef, ChatMessagesProps>(({ messages,
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    console.log('📜 scrollToBottom called', {
-      hasScrollArea: !!scrollAreaRef.current,
-      scrollTop: scrollAreaRef.current?.scrollTop,
-      scrollHeight: scrollAreaRef.current?.scrollHeight,
-      clientHeight: scrollAreaRef.current?.clientHeight
-    });
     
     if (scrollAreaRef.current) {
-      // Try to find the actual scrollable viewport (RadixUI ScrollArea has a nested structure)
       const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
       const targetElement = viewport || scrollAreaRef.current;
       
-      console.log('📜 Target element:', {
-        isViewport: !!viewport,
-        scrollTop: targetElement.scrollTop,
-        scrollHeight: targetElement.scrollHeight
-      });
-      
       targetElement.scrollTop = targetElement.scrollHeight;
       
-      // Log after scroll attempt
       setTimeout(() => {
-        console.log('📜 After scroll attempt:', {
-          scrollTop: targetElement.scrollTop,
-          scrollHeight: targetElement.scrollHeight
-        });
+        
       }, 10);
     }
   };
@@ -52,10 +35,8 @@ const ChatMessages = forwardRef<ChatMessagesRef, ChatMessagesProps>(({ messages,
     scrollToBottom
   }));
 
-  // Only scroll on initial load or when component first mounts
   useEffect(() => {
     if (scrollAreaRef.current && messages.length > 0) {
-      // Check if this is the first render with messages
       const shouldScroll = messages.length === 1 || 
         (messages.length > 1 && !messages.some(msg => (msg as any).isStreaming));
       
@@ -63,15 +44,13 @@ const ChatMessages = forwardRef<ChatMessagesRef, ChatMessagesProps>(({ messages,
         scrollToBottom();
       }
     }
-  }, [messages.length]); // Only depend on length, not content changes
+  }, [messages.length]);
 
   const formatTime = (date: Date | string | undefined) => {
     if (!date) return '';
     
-    // Convert to Date object if it's a string
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     
-    // Check if the conversion resulted in a valid date
     if (isNaN(dateObj.getTime())) {
       return '';
     }
@@ -82,7 +61,6 @@ const ChatMessages = forwardRef<ChatMessagesRef, ChatMessagesProps>(({ messages,
   const renderMessageContent = (message: UIMessage) => {
     const isStreaming = (message as any).isStreaming;
     
-    // 🔥 FIXED: For streaming messages, just show the accumulated content
     if (isStreaming) {
       return (
         <div>
@@ -98,15 +76,12 @@ const ChatMessages = forwardRef<ChatMessagesRef, ChatMessagesProps>(({ messages,
       );
     }
     
-    // 🔥 FIXED: For completed messages, collect text parts and render non-text parts separately
     if (message.parts && message.parts.length > 0) {
-      // Collect all text parts into one continuous string to avoid div wrapping
       const textParts = message.parts.filter(part => part.type === 'text');
       const nonTextParts = message.parts.filter(part => part.type !== 'text');
       
       return (
         <>
-          {/* 🔥 FIXED: Render all text as markdown */}
           {textParts.length > 0 && (
             <MarkdownRenderer 
               content={textParts.map(part => part.text).join('')}
@@ -114,7 +89,6 @@ const ChatMessages = forwardRef<ChatMessagesRef, ChatMessagesProps>(({ messages,
 
           )}
           
-          {/* Render non-text parts with their special formatting */}
           {nonTextParts.map((part, index) => {
             switch (part.type) {
               
@@ -136,7 +110,6 @@ const ChatMessages = forwardRef<ChatMessagesRef, ChatMessagesProps>(({ messages,
       );
     }
 
-    // Fallback to content if no parts
     return (
       <MarkdownRenderer content={message.content} />
     );
@@ -183,7 +156,6 @@ const ChatMessages = forwardRef<ChatMessagesRef, ChatMessagesProps>(({ messages,
               {renderMessageContent(message)}
             </div>
             
-            {/* Show standalone reasoning if not in parts and not streaming */}
             {!isStreaming && message.reasoning && (!message.parts || message.parts.length === 0) && (
               <div className="mt-3 p-2 bg-blue-50 rounded text-xs italic text-blue-700">
                 <strong>Reasoning:</strong>
@@ -191,7 +163,6 @@ const ChatMessages = forwardRef<ChatMessagesRef, ChatMessagesProps>(({ messages,
               </div>
             )}
             
-            {/* Show tool invocations if not in parts */}
             {message.toolInvocations && message.toolInvocations.length > 0 && (!message.parts || message.parts.length === 0) && (
               <div className="mt-3 space-y-2">
                 {message.toolInvocations.map((tool, index) => (
@@ -232,7 +203,6 @@ const ChatMessages = forwardRef<ChatMessagesRef, ChatMessagesProps>(({ messages,
     );
   };
 
-  // Filter out duplicate streaming messages that appear after refresh
   const hasStreamingMessage = messages.some(msg => (msg as any).isStreaming);
 
   return (
@@ -256,7 +226,6 @@ const ChatMessages = forwardRef<ChatMessagesRef, ChatMessagesProps>(({ messages,
           messages.map(renderMessage)
         )}
 
-        {/* Only show loading bubble if not streaming and isLoading is true */}
         {isLoading && !hasStreamingMessage && (
           <div className="flex gap-4 justify-start">
             <Avatar className="w-8 h-8 flex-shrink-0">

@@ -1,9 +1,9 @@
 import axios from "axios";
 import { parseStringPromise } from "xml2js";
-import 'dotenv/config';
 
-const categories = process.env.CATEGORIES?.split(',') || []; //https://arxiv.org/category_taxonomy
-const maxResultsPerCall = 2000; // Maximum per API call as per arXiv API limits
+
+const categories = process.env.CATEGORIES?.split(',') || [];
+const maxResultsPerCall = 2000;
 const beginStack = 30000;
 
 export interface ArxivPaper {
@@ -21,10 +21,6 @@ function isSameDay(dateStr: string[], targetDate: string): boolean {
     return dateStr[0].slice(0, 10) === targetDate;
 }
 
-/**
- * Fetch ALL papers for a specific date using pagination
- * This will make multiple API calls to get all papers for the target date
- */
 export async function fetchLatestArxivPapers(targetDate: string): Promise<ArxivPaper[]> {
     if (categories.length === 0) {
         throw new Error("No categories specified");
@@ -35,13 +31,9 @@ export async function fetchLatestArxivPapers(targetDate: string): Promise<ArxivP
     let start = 0;
     let hasMoreResults = true;
     
-    console.log(`Fetching ALL papers for ${targetDate}...`);
-    
     while (hasMoreResults) {
         const query = `search_query=${searchQuery}&sortBy=submittedDate&sortOrder=descending&start=${start}&max_results=${maxResultsPerCall}`;
         const url = `http://export.arxiv.org/api/query?${query}`;
-        
-        console.log(`Fetching batch ${Math.floor(start / maxResultsPerCall) + 1} (results ${start}-${start + maxResultsPerCall - 1})...`);
         
         try {
             const response = await axios.get(url);
@@ -49,7 +41,6 @@ export async function fetchLatestArxivPapers(targetDate: string): Promise<ArxivP
             const entries = parsed.feed.entry;
             
             if (!entries || entries.length === 0) {
-                console.log(`No more entries found at start=${start}`);
                 break;
             }
             
@@ -68,39 +59,28 @@ export async function fetchLatestArxivPapers(targetDate: string): Promise<ArxivP
             
             allPapers.push(...papersForDate);
             
-            // Check if we've found papers from a different date (meaning we've gone too far back)
             const hasOlderPapers = normalizedEntries.some(entry => 
                 entry.published[0].slice(0, 10) < targetDate
             );
             
             if (hasOlderPapers || normalizedEntries.length < maxResultsPerCall) {
-                console.log(`Reached end of results for ${targetDate}. Found papers from earlier dates or fewer results than requested.`);
                 hasMoreResults = false;
             } else {
                 start += maxResultsPerCall;
                 
-                // Add a small delay to be nice to the arXiv servers
                 if (start > 0) {
-                    console.log('Waiting 3 seconds before next request...');
                     await new Promise(resolve => setTimeout(resolve, 3000));
                 }
             }
             
         } catch (error) {
-            console.error(`Error fetching batch at start=${start}:`, error);
-            // If we get an error, stop trying to fetch more
             hasMoreResults = false;
         }
     }
     
-    console.log(`Finished fetching. Found ${allPapers.length} papers for ${targetDate}`);
     return allPapers;
 }
 
-/**
- * Fetch recent papers without strict date filtering
- * This is more efficient when combined with duplicate checking in the renewal process
- */
 export async function fetchRecentArxivPapers(maxResultsOverride?: number): Promise<ArxivPaper[]> {
     if (categories.length === 0) {
         throw new Error("No categories specified");
@@ -134,8 +114,6 @@ export async function fetchRecentArxivPapers(maxResultsOverride?: number): Promi
 
 
 
-///
-
 export async function beginningStackArxivPapers(): Promise<ArxivPaper[]> {
 
     if (categories.length === 0) {
@@ -147,7 +125,6 @@ export async function beginningStackArxivPapers(): Promise<ArxivPaper[]> {
 
     for (let i = 0; i < beginStack; i += maxResultsPerCall) {
         const query = `search_query=${searchQuery}&sortBy=submittedDate&sortOrder=descending&start=${i}&max_results=${maxResultsPerCall}`;
-        console.log(`Fetching beginning stack: ${i} to ${i + maxResultsPerCall} papers...`);
 
         const url = `http://export.arxiv.org/api/query?${query}`;
 
@@ -170,7 +147,6 @@ export async function beginningStackArxivPapers(): Promise<ArxivPaper[]> {
             category: entry.category[0].$.term,
         }));
 
-        console.log(`Beginning stack fetched: ${tempPapers.length} papers`);
         papers.push(...tempPapers);
     }
     

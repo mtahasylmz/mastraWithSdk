@@ -32,6 +32,8 @@
     "@radix-ui/react-toast": "^1.2.14",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@shadcn/ui": "^0.0.4",
+    "@upstash/ratelimit": "^2.0.5",
+    "@upstash/redis": "^1.35.1",
     "@upstash/vector": "^1.2.1",
     "add": "^2.0.6",
     "button": "^1.1.1",

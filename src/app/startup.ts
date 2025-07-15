@@ -1,17 +1,18 @@
 import { initializeServicesWithBeginningStack } from '../services/init';
 
-// Ensure environment variables are loaded
-if (typeof window === 'undefined') {
-  try {
-    require('dotenv').config({ path: '.env.local' });
-    require('dotenv').config({ path: '.env' });
-  } catch (error) {
-    // dotenv might not be available in production, that's ok
-  }
+// Global flag to ensure initialization only happens once per server process
+// Using global to persist across module re-imports during development
+declare global {
+  var __MASTRA_SERVICES_INITIALIZED: boolean | undefined;
 }
 
-
 export async function startupServices() {
+  // Check if already initialized
+  if (global.__MASTRA_SERVICES_INITIALIZED) {
+    console.log('⏭️ Services already initialized, skipping...');
+    return;
+  }
+
   try {
     console.log('🚀 Starting automatic service initialization...');
     console.log('🔍 Environment check:', {
@@ -20,6 +21,9 @@ export async function startupServices() {
       hasOpenAI: !!process.env.OPENAI_API_KEY,
       hasUpstash: !!process.env.UPSTASH_VECTOR_REST_URL
     });
+    
+    // Mark as initialized BEFORE starting to prevent race conditions
+    global.__MASTRA_SERVICES_INITIALIZED = true;
     
     // Check if this is a fresh deployment or development
     const shouldRunBeginningStack = process.env.RUN_BEGINNING_STACK === 'true';
@@ -36,15 +40,16 @@ export async function startupServices() {
     }
     
   } catch (error) {
+    // Reset flag on error so it can be retried
+    global.__MASTRA_SERVICES_INITIALIZED = false;
     console.error('❌ Error during automatic service initialization:', error);
-    // Don't crash the app, just log the error
     console.log('⚠️ Continuing without automatic initialization. Check your environment variables and restart the application.');
   }
 }
 
-// Auto-run on import - trigger in both development and production
-if (typeof window === 'undefined') { 
-  console.log('🔧 Server-side startup detected, initializing services...');
+// Only run initialization once per server process
+if (typeof window === 'undefined' && !global.__MASTRA_SERVICES_INITIALIZED) { 
+  console.log('🔧 Server startup detected, initializing services...');
   
   // Use setImmediate to run after current execution cycle
   setImmediate(() => {

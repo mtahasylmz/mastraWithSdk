@@ -1,6 +1,6 @@
 {
   "handler": "index.mjs",
   "launcherType": "Nodejs",
-  "runtime": "nodejs24.x",
+  "runtime": "nodejs18.x",
   "shouldAddHelpers": true
 }

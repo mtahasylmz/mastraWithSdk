@@ -1,0 +1,9 @@
+{
+  "buildCommand": "npm run build",
+  "functions": {
+    "app/**": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "outputDirectory": ".next"
+} 

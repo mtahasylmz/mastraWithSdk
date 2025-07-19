@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "concurrently \"npm run mastra:dev\" \"npm run next:dev\" --names \"mastra,next\" --prefix-colors \"cyan,magenta\"",
+    "dev": "npm run next:dev",
     "mastra:dev": "mastra dev",
     "build": "npm run mastra:build && npm run next:build",
     "start": "concurrently \"npm run mastra:start\" \"npm run next:start\" --names \"mastra,next\" --prefix-colors \"cyan,magenta\"",
@@ -19,9 +19,6 @@
   "license": "ISC",
   "description": "",
   "type": "module",
-  "engines": {
-    "node": "18.x"
-  },
   "dependencies": {
     "@ai-sdk/openai": "^1.3.22",
     "@mastra/client-js": "^0.10.11",

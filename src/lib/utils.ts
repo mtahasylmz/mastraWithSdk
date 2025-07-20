@@ -9,5 +9,5 @@ export function cn(...inputs: ClassValue[]) {
 
 export async function isRateLimited(id: string): Promise<boolean> {
   const { success } = await rateLimit.limit(id);
-  return !success; 
+  return !success;  
 }

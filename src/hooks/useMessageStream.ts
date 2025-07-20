@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { mastra_sdk } from '@/lib/mastraClient';
 import { MASTRA_CONFIG } from '@/lib/mastra-config';
 import { UIMessage } from './useMessages';
-
+import { isRateLimited } from '@/lib/utils';
 
 interface MessagePart {
   type: 'text' | 'reasoning' | 'tool-invocation' | 'source' | 'file' | 'step-start';
@@ -65,8 +65,7 @@ export const useMessageStream = (): UseMessageStreamReturn => {
 
 
       try {
-        const rateLimitResponse = await fetch(`/api/ratelimit?id=${ratelimitId}`);
-        const { isLimited } = await rateLimitResponse.json();
+        const isLimited = await isRateLimited(ratelimitId);
         
         if (isLimited) {
           setError('Rate limit exceeded. Please try again later.');

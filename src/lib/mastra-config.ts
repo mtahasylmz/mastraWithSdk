@@ -1,6 +1,6 @@
 export const MASTRA_CONFIG = {
   resourceId: process.env.NEXT_PUBLIC_RESOURCE_ID || "articleAgent",
-  agentId: "articleAgent", // Should match your agent configuration
+  agentId: "articleAgent", 
   baseUrl: process.env.NEXT_PUBLIC_MASTRA_API || "http://localhost:4111",
   retries: 3,
 };

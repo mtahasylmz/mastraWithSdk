@@ -1,4 +1,4 @@
-# arXiv AI Chat System
+# arXiv AI Chat System with Mastra and Upstash
 
 A Next.js application that fetches daily arXiv research abstracts, stores them in Upstash Vector database with OpenAI embeddings, and provides an AI-powered chat interface using the Mastra framework for intelligent research paper discovery and discussion.
 

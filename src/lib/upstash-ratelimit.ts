@@ -13,6 +13,10 @@ export const rateLimit = new Ratelimit({
 
 
 
+export async function isRateLimited(id: string): Promise<boolean> {
+    const { success } = await rateLimit.limit(id);
+    return !success;   
+}
 
 
 

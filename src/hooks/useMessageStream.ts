@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { mastra_sdk } from '@/lib/mastraClient';
 import { MASTRA_CONFIG } from '@/lib/mastra-config';
 import { UIMessage } from './useMessages';
-import { isRateLimited } from '@/lib/utils';
+
 
 interface MessagePart {
   type: 'text' | 'reasoning' | 'tool-invocation' | 'source' | 'file' | 'step-start';
@@ -64,18 +64,14 @@ export const useMessageStream = (): UseMessageStreamReturn => {
 
 
 
-      try {
-        const isLimited = await isRateLimited(ratelimitId);
-        
-        if (isLimited) {
-          setError('Rate limit exceeded. Please try again later.');
-          setIsStreaming(false);
-          setStreamingMessage(null);
-          return;
-        }
-      } catch (rateLimitError) {
-        // If rate limit check fails, continue anyway (fail open)
-        console.warn('Rate limit check failed, continuing with request:', rateLimitError);
+      //send api request to this server
+      const ratelimitResponse = await fetch(`/api/ratelimit?id=${ratelimitId}`);
+      const ratelimitData = await ratelimitResponse.json();
+      if (ratelimitData.isLimited) {
+        setError('Rate limit exceeded. Please try again later.');
+        setIsStreaming(false);
+        setStreamingMessage(null);
+        return;
       }
         
       const response = await agent.stream({

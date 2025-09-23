@@ -1,11 +1,10 @@
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs"
-import { fetchAndUpsertYesterday, consoleTrial } from "@/services/arxiv"
+import { fetchAndUpsertYesterday} from "@/services/arxiv"
 
 async function handler(request: Request) {
-  
-
-  await consoleTrial("Hello")
+  console.log("Fetching and upserting yesterday's papers...")
   await fetchAndUpsertYesterday()
+  console.log("Fetching and upserting yesterday's papers completed")
   return Response.json({ success: true })
 }
 

@@ -33,10 +33,7 @@ export async function startupServices() {
       await initializeServicesWithBeginningStack();
       console.log('✅ Automatic service initialization completed successfully');
     } else {
-      console.log('⏰ Starting scheduler-only initialization...');
-      const { initializeServices } = await import('../services/init');
-      initializeServices();
-      console.log('✅ Scheduler initialized successfully');
+      console.log('No beginning stack to run, starting directly...');
     }
     
   } catch (error) {

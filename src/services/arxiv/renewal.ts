@@ -109,6 +109,10 @@ export async function fetchAndUpsertYesterday(): Promise<void> {
     await storeAbstracts(papers);
 }
 
+export async function consoleTrial(message: string): Promise<void> {
+    console.log("Trial" + message);
+}
+
 export async function fetchBeginningStack() : Promise<void> {
     const papers = await beginningStackArxivPapers();
     await storeAbstracts(papers);
